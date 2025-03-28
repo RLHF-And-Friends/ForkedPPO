@@ -1,0 +1,14 @@
+gym[all, atari]==0.21.0
+torch==2.6.0
+tensorboard==2.5.0
+numpy==1.22.4
+stable-baselines3==1.1.0
+opencv-python==4.11.0.86
+atari-py==0.2.5
+swig==4.3.0
+Box2D==2.3.10
+box2d-kengz==2.3.3
+pygame==2.6.1
+ale_py==0.7.5
+autorom==0.6.1
+wandb==0.12.1
