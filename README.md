@@ -8,6 +8,23 @@ This repo contains the source code for the blog post *The 37 Implementation Deta
 If you like this repo, consider checking out CleanRL (https://github.com/vwxyzjn/cleanrl), the RL library that we used to build this repo.
 
 
+## Custom installation
+
+1. Check [this toml](pyproject.toml) file for dependencies. Move all dependencies to [requirements.txt](requirements.txt) file.
+2. Extend [requirements.txt](requirements.txt) file with all dependencies from this stackoverflow [post](https://stackoverflow.com/questions/69442971/error-in-importing-environment-openai-gym):
+```
+ gymnasium[atari, all]
+ swig
+ Box2D
+ box2d-kengz
+ pygame
+ ale_py
+ autorom
+```
+3. Install dependencies
+4. Patch gym\utils\seeding.py appropriately to this github [issue](https://github.com/ray-project/ray/issues/24133)
+
+
 ## Get started
 
 Prerequisites:

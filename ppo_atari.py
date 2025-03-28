@@ -90,7 +90,14 @@ def make_env(gym_id, seed, idx, capture_video, run_name):
         env = gym.make(gym_id)
         env = gym.wrappers.RecordEpisodeStatistics(env)
         if capture_video:
+            if 'render.modes' not in env.metadata:
+                env.metadata['render.modes'] = []
+            if 'rgb_array' not in env.metadata['render.modes']:
+                env.metadata['render.modes'].append('rgb_array')
+
             if idx == 0:
+                # trigger = lambda t: t % 100 == 0
+                # env = gym.wrappers.RecordVideo(env, f"videos/{run_name}", episode_trigger=trigger)
                 env = gym.wrappers.RecordVideo(env, f"videos/{run_name}")
         env = NoopResetEnv(env, noop_max=30)
         env = MaxAndSkipEnv(env, skip=4)
