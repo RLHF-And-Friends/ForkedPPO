@@ -3,3 +3,5 @@ ppo_env/
 *.ipynb
 *.out
 wandb/
+*.pyc
+legacy_fedrl/
