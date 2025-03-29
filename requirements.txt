@@ -13,3 +13,4 @@ ale_py==0.7.5
 autorom==0.6.1
 wandb==0.12.1
 matplotlib==3.7.4
+imageio-ffmpeg==0.6.0
