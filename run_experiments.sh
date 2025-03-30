@@ -13,7 +13,7 @@ export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
 export CUDA_DEVICE_ORDER=PCI_BUS_ID
 
 GPUS=(1 2 4 5 6 7)
-CPU_SETS=("0-7" "8-15" "16-23" "24-31" "32-39" "40-47" "48-51")
+CPU_SETS=("0-7" "8-15" "16-23" "24-31" "32-39" "40-47")
 # CPU_SETS=("0-11" "12-23" "24-35" "36-47")
 # CPU_SETS=("0-7" "8-15" "16-23" "24-47")
 MAX_JOBS=10
@@ -52,6 +52,9 @@ cat "$COMMANDS_FILE" | while read -r cmd; do
       taskset -c "$CPU_CORES" \
       $cmd > "$logfile" 2>&1 &
     # sg mygroup -c "$cmd > \"$logfile\" 2>&1 &"
+
+    # Добавляем небольшую задержку между запусками
+    sleep 5
 
     # Ограничиваем количество одновременно запущенных процессов
     while [ $(jobs -r | wc -l) -ge "$MAX_JOBS" ]; do

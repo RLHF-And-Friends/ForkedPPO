@@ -4,4 +4,4 @@ ppo_env/
 *.out
 wandb/
 *.pyc
-*.csv
+legacy_fedrl/
