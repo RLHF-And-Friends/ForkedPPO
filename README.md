@@ -13,7 +13,7 @@ If you like this repo, consider checking out CleanRL (https://github.com/vwxyzjn
 1. Check [this toml](pyproject.toml) file for dependencies. Move all dependencies to [requirements.txt](requirements.txt) file.
 2. Extend [requirements.txt](requirements.txt) file with all dependencies from this stackoverflow [post](https://stackoverflow.com/questions/69442971/error-in-importing-environment-openai-gym):
 ```
- gymnasium[atari, all]
+ gym[atari, all]
  swig
  Box2D
  box2d-kengz
@@ -24,6 +24,24 @@ If you like this repo, consider checking out CleanRL (https://github.com/vwxyzjn
 3. Install dependencies
 4. Patch gym\utils\seeding.py appropriately to this github [issue](https://github.com/ray-project/ray/issues/24133)
 
+**UPD: install dependencies sequentially.**
+
+```sh
+pip3.9 install gym==0.21.0
+pip3.9 install tensorboard==2.5.0
+pip3.9 install stable-baselines3==1.1.0
+pip3.9 install numpy==1.22.4
+pip3.9 install matplotlib==3.7.4
+pip3.9 install gym[atari]==0.21.0
+pip3.9 install swig==4.3.0
+pip3.9 install Box2D==2.3.10
+pip3.9 install box2d-kengz==2.3.3
+pip3.9 install pygame==2.6.1
+pip3.9 install ale_py==0.7.5
+pip3.9 install autorom==0.6.1
+pip3.9 install wandb==0.12.1
+pip3.9 install imageio-ffmpeg==0.6.0
+```
 
 ## Get started
 
