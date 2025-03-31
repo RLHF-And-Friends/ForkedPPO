@@ -157,6 +157,7 @@ if __name__ == "__main__":
             name=run_name,
             monitor_gym=False,
             save_code=False,
+            mode="offline",
             settings=wandb.Settings(
                 start_method="thread",
                 _disable_stats=True,
