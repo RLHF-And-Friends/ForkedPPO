@@ -1,0 +1,5 @@
+wandb sync /home/smirnovvl/ForkedPPO/wandb/offline-run-20250404_083822-m55dr2h9
+wandb sync /home/smirnovvl/ForkedPPO/wandb/offline-run-20250404_083823-m3nuy7fy
+wandb sync /home/smirnovvl/ForkedPPO/wandb/offline-run-20250404_083824-i7ypi9pu
+wandb sync /home/smirnovvl/ForkedPPO/wandb/offline-run-20250404_083825-obyc3b0y
+wandb sync /home/smirnovvl/ForkedPPO/wandb/offline-run-20250404_083826-ostjmy8c

@@ -5,3 +5,4 @@ ppo_env/
 wandb/
 *.pyc
 legacy_fedrl/
+*.log
