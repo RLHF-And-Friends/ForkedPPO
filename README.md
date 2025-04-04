@@ -43,6 +43,11 @@ pip3.9 install wandb==0.12.1
 pip3.9 install imageio-ffmpeg==0.6.0
 ```
 
+Offline wandb stats are stored in `wandb` folder. To sync local wandb project with remote one, run:
+```sh
+wandb sync wandb/offline-run-*
+```
+
 ## Get started
 
 Prerequisites:
