@@ -271,6 +271,7 @@ def main() -> None:
                 _disable_stats=True,
             )
         )
+        wandb.run.log_code(".", include_fn=lambda path: path.endswith(".py"))
 
     # Seeding
     random.seed(args.seed)
