@@ -81,6 +81,14 @@ def parse_args():
         help="path to comm_matrix json-config")
     parser.add_argument("--average-weights", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True,
         help="Average agents weights or not")
+    parser.add_argument("--use-fedavg", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True,
+        help="Use FedAVG or not")
+    parser.add_argument(
+        "--fedavg-average-weights-mode", type=str, default="classic-avg",
+        help="Two modes for FedAVG:\n" \
+        "1. classic-avg: just average\n" \
+        "2. communication-avg: average with communication matrix\n"
+    )
 
     # PPO specific arguments
     parser.add_argument("--num-envs", type=int, default=8,
@@ -123,6 +131,8 @@ def parse_args():
 
     assert args.objective_mode in [2, 3, 4]
     assert args.policy_aggregation_mode in ["default", "average_return", "scalar_product"]
+    assert args.fedavg_average_weights_mode in ["classic-avg", "communication-avg"]
+    assert not (args.use_fedavg and args.use_comm_penalty)
 
     # fmt: on
     return args
