@@ -5,7 +5,7 @@ import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
 import numpy as np
 
-from .utils import compute_kl_divergence
+from federated_ppo.utils import compute_kl_divergence
 
 
 class FederatedEnvironment():
@@ -28,7 +28,7 @@ class FederatedEnvironment():
         self.dones = torch.zeros((args.num_steps, args.num_envs), device=device)
         self.values = torch.zeros((args.num_steps, args.num_envs), device=device)
 
-        self.writer = SummaryWriter(f"runs/{args.setup_id}/{run_name}_agent_{agent_idx}")
+        self.writer = SummaryWriter(f"{args.runs_dir}/{args.setup_id}/{run_name}_agent_{agent_idx}")
         self.writer.add_text(
             "hyperparameters",
             "|param|value|\n|-|-|\n%s" % ("\n".join([f"|{key}|{value}|" for key, value in vars(args).items()])),
@@ -36,7 +36,19 @@ class FederatedEnvironment():
 
         self.num_steps = 0
         self.start_time = time.time()
-        self.next_obs = torch.Tensor(envs.reset()).to(device)
+        
+        # Инициализация начального состояния в зависимости от типа среды
+        if hasattr(args, 'env_type') and args.env_type == "atari":
+            # Для Atari используем стандартный формат
+            self.next_obs = torch.Tensor(envs.reset()).to(device)
+        else:
+            # Для MiniGrid используем новый формат с передачей seed
+            self.next_obs = torch.tensor(
+                envs.reset(seed=[10 * i * args.n_agents + args.seed * args.n_agents + agent_idx for i in range(args.num_envs)])[0],
+                dtype=torch.float32,
+                device=device
+            )
+            
         self.next_done = torch.zeros(args.num_envs, device=device)
 
         self.episodic_returns = {}
@@ -80,22 +92,45 @@ class FederatedEnvironment():
                 self.logprobs[step] = logprob
 
                 # TRY NOT TO MODIFY: execute the game and log data.
-                self.next_obs, reward, done, info = self.envs.step(action.cpu().numpy())
+                result = self.envs.step(action.cpu().numpy())
+                if len(result) == 5:
+                    # Новый формат возврата в Gym (observation, reward, terminated, truncated, info)
+                    next_obs, reward, terminated, truncated, info = result
+                    done = np.logical_or(terminated, truncated)
+                else:
+                    # Старый формат возврата в Gym (observation, reward, done, info)
+                    next_obs, reward, done, info = result
+
                 self.rewards[step] = torch.tensor(reward, device=self.device).view(-1)
-                self.next_obs, self.next_done = torch.Tensor(self.next_obs).to(self.device), torch.Tensor(done).to(self.device)
+                self.next_obs, self.next_done = torch.Tensor(next_obs).to(self.device), torch.Tensor(done).to(self.device)
 
                 # Log episodic returns for tracking agent performance
-                for item in info:
-                    if "episode" in item.keys():
-                        print(f"agent={self.agent_idx}, global_step={self.num_steps}, episodic_return={item['episode']['r']}")
-                        self.writer.add_scalar("charts/episodic_return", item["episode"]["r"], self.num_steps)
-                        self.writer.add_scalar("charts/episodic_length", item["episode"]["l"], self.num_steps)
-                        
-                        if number_of_communications not in self.episodic_returns:
-                            self.episodic_returns[number_of_communications] = []
-                        
-                        self.episodic_returns[number_of_communications].append(item["episode"]["r"])
-                        break
+                if "final_info" in info:
+                    # Обработка для нового интерфейса Gym (0.26+)
+                    for idx, item in enumerate(info["final_info"]):
+                        if item is not None and "episode" in item:
+                            r, l = item["episode"]["r"], item["episode"]["l"]
+                            print(f"agent={self.agent_idx}, global_step={self.num_steps}, episodic_return={r}")
+                            self.writer.add_scalar("charts/episodic_return", r, self.num_steps)
+                            self.writer.add_scalar("charts/episodic_length", l, self.num_steps)
+                            
+                            if number_of_communications not in self.episodic_returns:
+                                self.episodic_returns[number_of_communications] = []
+                            
+                            self.episodic_returns[number_of_communications].append(r)
+                else:
+                    # Обработка для старого интерфейса Gym
+                    for item in info:
+                        if "episode" in item.keys():
+                            print(f"agent={self.agent_idx}, global_step={self.num_steps}, episodic_return={item['episode']['r']}")
+                            self.writer.add_scalar("charts/episodic_return", item["episode"]["r"], self.num_steps)
+                            self.writer.add_scalar("charts/episodic_length", item["episode"]["l"], self.num_steps)
+                            
+                            if number_of_communications not in self.episodic_returns:
+                                self.episodic_returns[number_of_communications] = []
+                            
+                            self.episodic_returns[number_of_communications].append(item["episode"]["r"])
+                            break
 
             # bootstrap value if not done
             with torch.no_grad():

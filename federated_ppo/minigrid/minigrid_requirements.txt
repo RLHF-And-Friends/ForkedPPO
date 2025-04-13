@@ -1,0 +1,8 @@
+minigrid==3.0.0
+gym==0.25.2
+tensorboard==2.5.0
+torch==2.6.0
+stable-baselines3==1.1.0
+wandb==0.12.1
+moviepy==2.1.2
+numpy==1.23.5
