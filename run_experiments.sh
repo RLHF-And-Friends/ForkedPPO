@@ -22,17 +22,18 @@ MAX_JOBS=10
 gpu_index=0
 cpu_index=0
 
-# Запускаем все команды из файла commands.txt
-cat "$COMMANDS_FILE" | while read -r cmd; do
-    if [ -z "$cmd" ]; then
-        continue  # Пропускаем пустые строки
-    fi
+# Функция для обработки многострочных команд
+process_command() {
+    local full_cmd="$1"
+    
+    # Удаляем обратные слеши и объединяем строки
+    full_cmd=$(echo "$full_cmd" | sed 's/\\\s*$//g' | tr -d '\n')
     
     # Извлекаем параметры из команды
-    setup_id=$(echo "$cmd" | grep -o "\--setup-id=setup_[0-9]*" | sed 's/--setup-id=setup_//')
-    seed=$(echo "$cmd" | grep -o "\--seed=[0-9]*" | sed 's/--seed=//')
-    exp_name=$(echo "$cmd" | grep -o "\--exp-name=[^ ]*" | sed 's/--exp-name=//')
-    env_type=$(echo "$cmd" | grep -o "\--env-type=[^ ]*" | sed 's/--env-type=//')
+    setup_id=$(echo "$full_cmd" | grep -o "\--setup-id=[^ ]*" | sed 's/--setup-id=//')
+    seed=$(echo "$full_cmd" | grep -o "\--seed=[0-9]*" | sed 's/--seed=//')
+    exp_name=$(echo "$full_cmd" | grep -o "\--exp-name=[^ ]*" | sed 's/--exp-name=//')
+    env_type=$(echo "$full_cmd" | grep -o "\--env-type=[^ ]*" | sed 's/--env-type=//')
 
     if [ "$env_type" = "minigrid" ]; then
         logs_dir="federated_ppo/minigrid/logs"
@@ -45,7 +46,7 @@ cat "$COMMANDS_FILE" | while read -r cmd; do
     mkdir -p "$logs_dir"
     
     # Создаем уникальное имя файла для лога
-    timestamp=$(date +"%Y%m%d_%H%M%S")
+    timestamp=$(date +"%d_%m_%Y_%H_%M_%S")
     
     # Формируем имя файла с доступными параметрами
     logfile="${logs_dir}/"
@@ -63,18 +64,18 @@ cat "$COMMANDS_FILE" | while read -r cmd; do
 
     GPU="${GPUS[$gpu_index]}"
     CPU_CORES="${CPU_SETS[$cpu_index]}"
-    echo "Выбран GPU = $GPU, CPU Cores = $CPU_CORES для команды: $cmd"
+    echo "Выбран GPU = $GPU, CPU Cores = $CPU_CORES для команды: $full_cmd"
 
     gpu_index=$(( (gpu_index + 1) % ${#GPUS[@]} ))
     cpu_index=$(( (cpu_index + 1) % ${#CPU_SETS[@]} ))
 
-    echo "Running: $cmd"  # Отладочный вывод команды
+    echo "Running: $full_cmd"  # Отладочный вывод команды
     echo "Log file: $logfile"  # Показываем, куда пишется лог
 
     CUDA_VISIBLE_DEVICES="$GPU" \
       taskset -c "$CPU_CORES" \
-      $cmd > "$logfile" 2>&1 &
-    # sg mygroup -c "$cmd > \"$logfile\" 2>&1 &"
+      $full_cmd > "$logfile" 2>&1 &
+    # sg mygroup -c "$full_cmd > \"$logfile\" 2>&1 &"
 
     # Добавляем небольшую задержку между запусками
     sleep 1
@@ -83,4 +84,33 @@ cat "$COMMANDS_FILE" | while read -r cmd; do
     while [ $(jobs -r | wc -l) -ge "$MAX_JOBS" ]; do
         sleep 5
     done
-done
+}
+
+# Читаем файл и собираем многострочные команды
+current_command=""
+while IFS= read -r line || [ -n "$line" ]; do
+    # Пропускаем пустые строки, если нет текущей команды
+    if [ -z "$line" ] && [ -z "$current_command" ]; then
+        continue
+    fi
+    
+    # Если строка пустая и у нас есть текущая команда, это конец команды
+    if [ -z "$line" ] && [ -n "$current_command" ]; then
+        process_command "$current_command"
+        current_command=""
+        continue
+    fi
+    
+    # Добавляем строку к текущей команде
+    if [ -z "$current_command" ]; then
+        current_command="$line"
+    else
+        current_command="$current_command
+$line"
+    fi
+done < "$COMMANDS_FILE"
+
+# Обрабатываем последнюю команду, если она осталась
+if [ -n "$current_command" ]; then
+    process_command "$current_command"
+fi

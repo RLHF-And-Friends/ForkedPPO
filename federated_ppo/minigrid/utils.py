@@ -6,10 +6,9 @@ import torch
 import json
 from distutils.util import strtobool
 import gym
-import minigrid
 import torch.nn.functional as F
 from typing import Optional
-from minigrid.wrappers import RGBImgPartialObsWrapper, ImgObsWrapper, FlatObsWrapper
+from gym_minigrid.wrappers import RGBImgPartialObsWrapper, ImgObsWrapper, FlatObsWrapper
 
 
 def parse_args():
@@ -138,24 +137,10 @@ def get_agent_group_id(agent_idx, args):
 
 def make_env(args, gym_id, seed, idx, agent_idx, capture_video, run_name):
     def thunk():
-        if capture_video and idx == 0 and agent_idx == 0:
-            env = gym.make(gym_id, render_mode="rgb_array")
-
-            if 'render.modes' not in env.metadata:
-                env.metadata['render.modes'] = []
-            if 'rgb_array' not in env.metadata['render.modes']:
-                env.metadata['render.modes'].append('rgb_array')
-
-            env = gym.wrappers.RecordVideo(env, os.path.join(args.videos_dir, f"env_{agent_idx}/{run_name}"))
-        else:
-            env = gym.make(gym_id)
-        
-        # Для MiniGrid оборачиваем среду в специальные обертки
-        if gym_id.startswith("MiniGrid"):
-            env = RGBImgPartialObsWrapper(env)  # Получаем RGB-изображение
-            env = ImgObsWrapper(env)  # Получаем только пиксельное наблюдение
-        
+        env = gym.make(gym_id)
         env = gym.wrappers.RecordEpisodeStatistics(env)
+        env = RGBImgPartialObsWrapper(env)
+        env = ImgObsWrapper(env)
 
         if capture_video:
             if 'render.modes' not in env.metadata:
@@ -163,6 +148,8 @@ def make_env(args, gym_id, seed, idx, agent_idx, capture_video, run_name):
             if 'rgb_array' not in env.metadata['render.modes']:
                 env.metadata['render.modes'].append('rgb_array')
 
+            if idx == 0 and agent_idx == 0:
+                env = gym.wrappers.RecordVideo(env, os.path.join(args.videos_dir, f"env_{agent_idx}/{run_name}"))
 
         env.action_space.seed(seed)
         env.observation_space.seed(seed)

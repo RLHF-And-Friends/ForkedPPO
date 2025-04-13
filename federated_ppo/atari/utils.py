@@ -131,15 +131,7 @@ def make_env(args, gym_id, seed, idx, agent_idx, capture_video, run_name):
     def thunk():
         env = gym.make(gym_id)
         env = gym.wrappers.RecordEpisodeStatistics(env)
-        if capture_video:
-            # See PR: https://github.com/vwxyzjn/ppo-implementation-details/pull/12
-            if 'render.modes' not in env.metadata:
-                env.metadata['render.modes'] = []
-            if 'rgb_array' not in env.metadata['render.modes']:
-                env.metadata['render.modes'].append('rgb_array')
 
-            if idx == 0 and agent_idx == 0:
-                env = gym.wrappers.RecordVideo(env, os.path.join(args.videos_dir, f"env_{agent_idx}/{run_name}"))
         env = NoopResetEnv(env, noop_max=30)
         env = MaxAndSkipEnv(env, skip=4)
         env = EpisodicLifeEnv(env)
@@ -149,6 +141,17 @@ def make_env(args, gym_id, seed, idx, agent_idx, capture_video, run_name):
         env = gym.wrappers.ResizeObservation(env, (84, 84))
         env = gym.wrappers.GrayScaleObservation(env)
         env = gym.wrappers.FrameStack(env, 4)
+
+        if capture_video:
+            # See PR: https://github.com/vwxyzjn/ppo-implementation-details/pull/12
+            if 'render.modes' not in env.metadata:
+                env.metadata['render.modes'] = []
+            if 'rgb_array' not in env.metadata['render.modes']:
+                env.metadata['render.modes'].append('rgb_array')
+
+            if idx == 0 and agent_idx == 0:
+                env = gym.wrappers.RecordVideo(env, os.path.join(args.videos_dir, f"env_{agent_idx}/{run_name}"))
+
         env.seed(seed)
         env.action_space.seed(seed)
         env.observation_space.seed(seed)
