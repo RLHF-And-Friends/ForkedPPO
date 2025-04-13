@@ -224,7 +224,7 @@ class FederatedEnvironment():
                     loss = pg_loss - args.ent_coef * entropy_loss + v_loss * args.vf_coef
                     abs_loss = abs(pg_loss) + abs(args.ent_coef * entropy_loss) + abs(v_loss * args.vf_coef)  # for logging
 
-                    if args.use_comm_penalty:
+                    if args.use_comm_penalty and not args.use_fedavg:
                         # log two options
                         sum_kl_penalty = 0
                         kl_div_weighted = None
