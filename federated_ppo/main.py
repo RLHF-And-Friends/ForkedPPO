@@ -195,7 +195,7 @@ def main():
             sync_tensorboard=True,
             config=vars(args),
             name=run_name,
-            monitor_gym=True,
+            monitor_gym=True, # auto-upload the videos of agents playing the game. Note: we have to log videos manually with minigrid environment
             save_code=True,
             # mode="offline",
             dir=args.wandb_dir,
