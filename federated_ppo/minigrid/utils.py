@@ -54,7 +54,8 @@ def parse_args():
     )
     parser.add_argument("--local-updates", type=int, default=16,
         help="parameter E (number of local updates between communications)")
-    parser.add_argument("--objective-mode", type=int, default=3,
+    parser.add_argument(
+        "--objective-mode", type=int, default=3,
         help="Three modes for objective:\n" \
         "1. No clipping or KL-penalty\n" \
         "2. Clipping\n" \
@@ -70,10 +71,14 @@ def parse_args():
         help="KL penalty coefficient")
     parser.add_argument("--comm-matrix-config", type=str, default=None, 
         help="path to comm_matrix json-config")
-    parser.add_argument("--env-parameters-config", type=str, default=None, 
-        help="path to environment parameters json-config")
-    parser.add_argument("--average-weights", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True,
-        help="Average agents weights or not")
+    parser.add_argument("--use-fedavg", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True,
+        help="Use FedAVG or not")
+    parser.add_argument(
+        "--fedavg-average-weights-mode", type=str, default="classic-avg",
+        help="Two modes for FedAVG:\n" \
+        "1. classic-avg: just average\n" \
+        "2. communication-avg: average with communication matrix\n"
+    )
     parser.add_argument("--env-type", type=str, default="minigrid",
         help="Type of environment to use (atari or minigrid)")
 
@@ -127,6 +132,9 @@ def parse_args():
         print("Agents per group: ", args.agents_per_group)
     elif args.policy_aggregation_mode == "average_return":
         assert args.n_agents >= 3
+
+    assert args.fedavg_average_weights_mode in ["classic-avg", "communication-avg"]
+    assert not (args.use_fedavg and args.use_comm_penalty)
 
     # fmt: on
     return args

@@ -25,11 +25,11 @@ class Agent(nn.Module):
         # Создаем сверточные слои отдельно от Sequential для возможности расчета n_flatten
         self.conv_layers = nn.Sequential(
             layer_init(nn.Conv2d(n_input_channels, 16, (2, 2))),
-            nn.ReLU(),
+            nn.Tanh(),
             layer_init(nn.Conv2d(16, 32, (2, 2))),
-            nn.ReLU(),
+            nn.Tanh(),
             layer_init(nn.Conv2d(32, 64, (2, 2))),
-            nn.ReLU(),
+            nn.Tanh(),
         )
         
         # Рассчитываем размер выхода после сверточных слоев с примерным тензором

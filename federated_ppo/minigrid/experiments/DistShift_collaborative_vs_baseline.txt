@@ -14,7 +14,7 @@ python3.9 -m federated_ppo.main \
     --local-updates=32 \
     --seed=0 \
     --learning-rate=0.00025 \
-    --total-timesteps=2000000 \
+    --total-timesteps=5000000 \
     --vf-coef=0.001 \
     --ent-coef=0.01 \
     --capture-video=true \
@@ -38,7 +38,7 @@ python3.9 -m federated_ppo.main \
     --local-updates=32 \
     --seed=0 \
     --learning-rate=0.00025 \
-    --total-timesteps=2000000 \
+    --total-timesteps=5000000 \
     --vf-coef=0.001 \
     --ent-coef=0.01 \
     --capture-video=true \

@@ -11,39 +11,69 @@ import argparse
 import os
 from distutils.util import strtobool
 import pytz
+from typing import List, Optional, Dict, Union, Type, TypeVar, Callable
+from federated_ppo.federated_environment import FederatedEnvironment
+from federated_ppo.atari.agent import Agent as AtariAgent
+from federated_ppo.minigrid.agent import Agent as MinigridAgent
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-Agent = None
-make_env = None
-FederatedEnvironment = None
+Agent: Optional[Union[Type[AtariAgent], Type[MinigridAgent]]] = None
+make_env: Optional[Callable] = None
 
-
-def average_weights(federated_envs) -> None:
-    agents = []
+def average_weights(federated_envs: List[FederatedEnvironment], fedavg_average_weights_mode: str) -> None:
+    """
+    Усредняет веса агентов в федеративной системе.
+    
+    Args:
+        federated_envs: Список федеративных окружений с агентами
+        fedavg_average_weights_mode: Режим усреднения весов
+            - "classic-avg": простое усреднение (каждый агент имеет одинаковый вес)
+            - "communication-avg": усреднение с учетом матрицы коммуникаций
+    """
+    agents: List[Union[AtariAgent, MinigridAgent]] = []
     for env in federated_envs:
         agents.append(copy.deepcopy(env.agent))
 
     state_dict_keys = agents[0].state_dict().keys()
+    n_agents: int = len(federated_envs)
 
     for i, env in enumerate(federated_envs):
-        agent = env.agent
-        averaged_weights = {key: torch.zeros_like(param) for key, param in agents[0].state_dict().items()}
-        for key in state_dict_keys:
-            denom = 0
-            for j, neighbor_agent in enumerate(agents):
-                neighbor_agent_weights = neighbor_agent.state_dict()
-                averaged_weights[key] += env.comm_matrix[i, j] * neighbor_agent_weights[key]
-                denom += env.comm_matrix[i, j]
-            averaged_weights[key] /= denom
+        agent: Union[AtariAgent, MinigridAgent] = env.agent
+        averaged_weights: Dict[str, torch.Tensor] = {key: torch.zeros_like(param) for key, param in agents[0].state_dict().items()}
+        
+        if fedavg_average_weights_mode == "classic-avg":
+            # Простое усреднение - все агенты имеют одинаковый вес
+            for key in state_dict_keys:
+                for neighbor_agent in agents:
+                    neighbor_agent_weights = neighbor_agent.state_dict()
+                    averaged_weights[key] += neighbor_agent_weights[key] / n_agents
+        else:
+            # Усреднение с учетом матрицы коммуникаций
+            for key in state_dict_keys:
+                denom: float = 0.0
+                for j, neighbor_agent in enumerate(agents):
+                    neighbor_agent_weights = neighbor_agent.state_dict()
+                    averaged_weights[key] += env.comm_matrix[i, j] * neighbor_agent_weights[key]
+                    denom += env.comm_matrix[i, j]
+                
+                # Предотвращаем деление на ноль
+                if denom > 0:
+                    averaged_weights[key] /= denom
 
         agent.load_state_dict(averaged_weights)
 
 
-def exchange_weights(federated_envs) -> None:
-    agents = []
+def exchange_weights(federated_envs: List[FederatedEnvironment]) -> None:
+    """
+    Обменивается весами между агентами в федеративной системе.
+    
+    Args:
+        federated_envs: Список федеративных окружений с агентами
+    """
+    agents: List[Union[AtariAgent, MinigridAgent]] = []
     for env in federated_envs:
-        agent_copy = copy.deepcopy(env.agent)
+        agent_copy: Union[AtariAgent, MinigridAgent] = copy.deepcopy(env.agent)
         for param in agent_copy.parameters():
             param.requires_grad = False
 
@@ -53,29 +83,47 @@ def exchange_weights(federated_envs) -> None:
         env.set_neighbors(agents)
 
 
-def update_comm_matrix(federated_envs, policy_aggregation_mode) -> None:
+def update_comm_matrix(federated_envs: List[FederatedEnvironment], policy_aggregation_mode: str) -> None:
+    """
+    Обновляет матрицу коммуникаций на основе производительности агентов.
+    
+    Args:
+        federated_envs: Список федеративных окружений с агентами
+        policy_aggregation_mode: Режим агрегации политик
+    """
     # Note: it could be non-symmetric in case of "average_return"
     assert policy_aggregation_mode == "average_return"
 
-    n = len(federated_envs)
-    a = np.zeros(n)
+    n: int = len(federated_envs)
+    a: np.ndarray = np.zeros(n)
     for i, env in enumerate(federated_envs):
         a[i] = env.last_average_episodic_return_between_communications
 
-    W = np.tile(a, (n, 1))
+    W: np.ndarray = np.tile(a, (n, 1))
 
     for env in federated_envs:
         env.set_comm_matrix(torch.tensor(W, dtype=torch.float32))
 
 
-def generate_federated_system(device, args, run_name):
+def generate_federated_system(device: torch.device, args: argparse.Namespace, run_name: str) -> List[FederatedEnvironment]:
+    """
+    Генерирует федеративную систему обучения.
+    
+    Args:
+        device: Устройство для вычислений (CPU/GPU)
+        args: Аргументы командной строки
+        run_name: Название запуска эксперимента
+        
+    Returns:
+        Список федеративных окружений с агентами
+    """
     # env setup
-    federated_envs = []
+    federated_envs: List[FederatedEnvironment] = []
 
     for agent_idx in range(args.n_agents):
         # assumption: seeds < 10
         # so we need to generate (seeds * num_envs * n_agents) different envs
-        envs = gym.vector.SyncVectorEnv(
+        envs: gym.vector.SyncVectorEnv = gym.vector.SyncVectorEnv(
             [
                 make_env(
                     args,
@@ -91,12 +139,12 @@ def generate_federated_system(device, args, run_name):
         
         assert isinstance(envs.single_action_space, gym.spaces.Discrete), "only discrete action space is supported"
 
-        agent = Agent(envs).to(device)
-        optimizer = optim.Adam(agent.parameters(), lr=args.learning_rate, eps=1e-5)
+        agent: Union[AtariAgent, MinigridAgent] = Agent(envs).to(device)
+        optimizer: optim.Adam = optim.Adam(agent.parameters(), lr=args.learning_rate, eps=1e-5)
 
         federated_envs.append(FederatedEnvironment(device, args, run_name, envs, agent_idx, agent, optimizer))
 
-    if args.use_comm_penalty or args.average_weights:
+    if args.use_comm_penalty or args.use_fedavg:
         from federated_ppo.utils import create_comm_matrix
         if args.policy_aggregation_mode == "default":
             comm_matrix = create_comm_matrix(n_agents=args.n_agents, comm_matrix_config=args.comm_matrix_config)
@@ -111,11 +159,27 @@ def generate_federated_system(device, args, run_name):
     return federated_envs
 
 
-def local_update(federated_env, number_of_communications) -> None:
+def local_update(federated_env: FederatedEnvironment, number_of_communications: int) -> None:
+    """
+    Выполняет локальное обновление агента.
+    
+    Args:
+        federated_env: Федеративное окружение с агентом
+        number_of_communications: Номер текущей коммуникации
+    """
     federated_env.local_update(number_of_communications)
 
 
-def add_env_type_arg(parser):
+def add_env_type_arg(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+    """
+    Добавляет аргументы для выбора типа окружения.
+    
+    Args:
+        parser: Объект парсера аргументов
+        
+    Returns:
+        Обновленный объект парсера аргументов
+    """
     parser.add_argument("--env-type", type=str, choices=["atari", "minigrid"], default="atari",
         help="Type of environment to use (atari or minigrid)")
     parser.add_argument("--wandb-dir", type=str, default=None,
@@ -125,39 +189,39 @@ def add_env_type_arg(parser):
     return parser
 
 
-def main():
-    global Agent, make_env, FederatedEnvironment
+def main() -> None:
+    """
+    Главная функция для запуска федеративного обучения с подкреплением.
+    """
+    global Agent, make_env
     
     # Предварительно анализируем аргументы, чтобы узнать тип среды
-    parser = argparse.ArgumentParser()
+    parser: argparse.ArgumentParser = argparse.ArgumentParser()
     parser = add_env_type_arg(parser)
     # Добавляем только аргумент для типа среды, чтобы определить, какой модуль импортировать
+    temp_args: argparse.Namespace
     temp_args, _ = parser.parse_known_args()
     
-    env_type = temp_args.env_type
+    env_type: str = temp_args.env_type
     
     # Импортируем нужные модули в зависимости от типа среды
     if env_type == "atari":
         print("Используем Atari среду")
         from federated_ppo.atari.agent import Agent as AtariAgent
         from federated_ppo.atari.utils import parse_args, make_env as atari_make_env
-        from federated_ppo.federated_environment import FederatedEnvironment as FedEnv
         
         Agent = AtariAgent
         make_env = atari_make_env
-        FederatedEnvironment = FedEnv
     else:  # minigrid
         print("Используем MiniGrid среду")
         from federated_ppo.minigrid.agent import Agent as MinigridAgent
         from federated_ppo.minigrid.utils import parse_args, make_env as minigrid_make_env
-        from federated_ppo.federated_environment import FederatedEnvironment as FedEnv
         
         Agent = MinigridAgent
         make_env = minigrid_make_env
-        FederatedEnvironment = FedEnv
     
     # Теперь можем парсить все аргументы
-    args = parse_args()
+    args: argparse.Namespace = parse_args()
     
     args.wandb_dir = os.path.join(ROOT_DIR, f"federated_ppo/{args.env_type}/wandb")
     args.videos_dir = os.path.join(ROOT_DIR, f"federated_ppo/{args.env_type}/videos")
@@ -166,6 +230,7 @@ def main():
     os.makedirs(args.wandb_dir, exist_ok=True)
     os.makedirs(args.videos_dir, exist_ok=True)
     
+    run_name: str
     if args.use_gym_id_in_run_name:
         run_name = args.gym_id
     else:
@@ -206,6 +271,7 @@ def main():
                 _disable_stats=True,
             )
         )
+        wandb.run.log_code(".", include_fn=lambda path: path.endswith(".py"))
 
     # Seeding
     random.seed(args.seed)
@@ -228,14 +294,15 @@ def main():
             for future in futures:
                 future.result()
 
-            if args.average_weights:
-                average_weights(federated_envs)
-
-            if args.average_weights or args.use_comm_penalty:
-                exchange_weights(federated_envs)
-
             if args.policy_aggregation_mode == "average_return":
                 update_comm_matrix(federated_envs, args.policy_aggregation_mode)
+
+            if args.use_fedavg or args.use_comm_penalty:
+                exchange_weights(federated_envs)
+
+            if args.use_fedavg:
+                average_weights(federated_envs, args.fedavg_average_weights_mode)
+                exchange_weights(federated_envs)
 
             torch.cuda.empty_cache()
 
