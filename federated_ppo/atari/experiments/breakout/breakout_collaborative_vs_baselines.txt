@@ -1,0 +1,34 @@
+python3.9 -m federated_ppo.main \
+    --env-type=atari \
+    --gym-id=BreakoutNoFrameskip-v4 \
+    --exp-name=collaborative_penalty_comparison \
+    --setup-id=comm_penalty_5_0 \
+    --policy-aggregation-mode=average_return \
+    --n-agents=3 \
+    --total-timesteps=10000000 \
+    --local-updates=16 \
+    --seed=0 \
+    --objective-mode=3 \
+    --use-comm-penalty=True \
+    --penalty-coeff=5.0 \
+    --comm-penalty-coeff=5.0 \
+    --capture-video=True \
+    --track=True \
+    --wandb-project-name=FedRL_BreakoutNoFrameskip
+
+python3.9 -m federated_ppo.main \
+    --env-type=atari \
+    --gym-id=BreakoutNoFrameskip-v4 \
+    --exp-name=penalty_coeff_comparison \
+    --setup-id=penalty_5_0 \
+    --policy-aggregation-mode=default \
+    --n-agents=1 \
+    --total-timesteps=10000000 \
+    --local-updates=16 \
+    --seed=0 \
+    --objective-mode=3 \
+    --use-comm-penalty=False \
+    --penalty-coeff=5.0 \
+    --capture-video=True \
+    --track=True \
+    --wandb-project-name=FedRL_BreakoutNoFrameskip

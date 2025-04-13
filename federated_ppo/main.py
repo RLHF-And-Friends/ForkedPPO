@@ -10,6 +10,7 @@ import torch.optim as optim
 import argparse
 import os
 from distutils.util import strtobool
+import pytz
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -183,7 +184,8 @@ def main():
     if args.seed != "":
         run_name += f"__seed_{args.seed}"
 
-    current_time = datetime.datetime.now().strftime("%d%m_%H%M")
+    utc_plus_3 = pytz.timezone('Europe/Moscow')  # UTC+3 (Московское время)
+    current_time = datetime.datetime.now(utc_plus_3).strftime("%d_%m_%Y_%H_%M_%S")
     run_name += f"__{current_time}"
 
     if args.track:
