@@ -151,8 +151,8 @@ if __name__ == "__main__":
             sync_tensorboard=True,
             config=vars(args),
             name=run_name,
-            monitor_gym=False,
-            save_code=False,
+            monitor_gym=True,
+            save_code=True,
             settings=wandb.Settings(
                 start_method="thread",
                 _disable_stats=True,

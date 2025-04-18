@@ -8,8 +8,8 @@ from distutils.util import strtobool
 import gym
 import minigrid
 import torch.nn.functional as F
-from custom_envs.classic_control.cartpole import CustomCartPoleEnv
-from custom_envs.minigrid.custom_minigrid_env import CustomCrossingEnv
+# from custom_envs.classic_control.cartpole import CustomCartPoleEnv
+# from custom_envs.minigrid.custom_minigrid_env import CustomCrossingEnv
 from minigrid.wrappers import RGBImgPartialObsWrapper, ImgObsWrapper
 from minigrid.core.world_object import Wall, Lava
 
@@ -135,7 +135,7 @@ def parse_args():
     return args
 
 
-def create_comm_matrix(n_agents: int, comm_matrix_config: str | None):
+def create_comm_matrix(n_agents: int, comm_matrix_config: str = None):
     if comm_matrix_config:
         W = np.zeros((n_agents, n_agents))
         with open(comm_matrix_config, 'r') as file:
@@ -196,15 +196,15 @@ def make_env(args, env_parameters_config, gym_id, seed, agent_idx, env_idx, capt
                 agent_corner = (agent_corner + group_id) % 4
                 goal_corner = (goal_corner + group_id) % 4            
 
-            env = CustomCrossingEnv(
-                obstacle_type=obstacle_type,
-                see_through_walls=args.see_through_walls,
-                size=9,
-                num_crossings=2,
-                obstacles_dir=obstacles_dir,
-                agent_corner=agent_corner,
-                goal_corner=goal_corner,
-            )
+            # env = CustomCrossingEnv(
+            #     obstacle_type=obstacle_type,
+            #     see_through_walls=args.see_through_walls,
+            #     size=9,
+            #     num_crossings=2,
+            #     obstacles_dir=obstacles_dir,
+            #     agent_corner=agent_corner,
+            #     goal_corner=goal_corner,
+            # )
             
             env = ImgObsWrapper(env)
             # else:
