@@ -13,6 +13,25 @@ def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
     torch.nn.init.constant_(layer.bias, bias_const)
     return layer
 
+# Функция для создания нужного типа агента в зависимости от параметра agent_with_convolutions
+def make_agent(envs, agent_with_convolutions=True):
+    """
+    Создает экземпляр агента нужного типа в зависимости от параметра agent_with_convolutions.
+    
+    Args:
+        envs: среды для обучения
+        agent_with_convolutions: использовать ли сверточную архитектуру (True) или MLP (False)
+        
+    Returns:
+        Agent или MLPAgent в зависимости от agent_with_convolutions
+    """
+    if agent_with_convolutions:
+        print("Creating agent with convolutional layers")
+        return Agent(envs)
+    else:
+        print("Creating MLP agent without convolutional layers")
+        return MLPAgent(envs)
+
 class Agent(nn.Module):
     def __init__(self, envs, is_grid: bool = True):
         super(Agent, self).__init__()
@@ -98,6 +117,67 @@ class Agent(nn.Module):
         copied_agent = Agent(self.envs)
         copied_agent.conv_layers = copy.deepcopy(self.conv_layers, memo)
         copied_agent.linear_layers = copy.deepcopy(self.linear_layers, memo)
+        copied_agent.actor = copy.deepcopy(self.actor, memo)
+        copied_agent.critic = copy.deepcopy(self.critic, memo)
+        return copied_agent
+
+# Новый класс MLPAgent - реализация без сверточных слоев (как в gym_minigrid_ppo.py)
+class MLPAgent(nn.Module):
+    def __init__(self, envs):
+        super(MLPAgent, self).__init__()
+        self.envs = envs
+        
+        # Вычисляем общее число входных признаков, "выпрямляя" наблюдение
+        obs_shape = np.array(envs.single_observation_space.shape)
+        input_dim = int(np.prod(obs_shape))
+        
+        # Создаем модель критика (value network)
+        self.critic = nn.Sequential(
+            layer_init(nn.Linear(input_dim, 64)),
+            nn.Tanh(),
+            layer_init(nn.Linear(64, 64)),
+            nn.Tanh(),
+            layer_init(nn.Linear(64, 1), std=1.),
+        )
+        
+        # Создаем модель актора (policy network)
+        self.actor = nn.Sequential(
+            layer_init(nn.Linear(input_dim, 64)),
+            nn.Tanh(),
+            layer_init(nn.Linear(64, 64)),
+            nn.Tanh(),
+            layer_init(nn.Linear(64, envs.single_action_space.n), std=0.01),
+        )
+        
+        print(f"MLPAgent initialized with input_dim: {input_dim}")
+        print(f"Observation shape: {obs_shape}")
+
+    def get_value(self, x):
+        # Преобразуем входные данные в плоский вектор
+        batch_size = x.shape[0]
+        x_flat = x.reshape(batch_size, -1)
+        return self.critic(x_flat)
+
+    def get_action_and_value(self, x, action=None):
+        # Преобразуем входные данные в плоский вектор
+        batch_size = x.shape[0]
+        x_flat = x.reshape(batch_size, -1)
+        
+        # Получаем логиты от актора
+        logits = self.actor(x_flat)
+        probs = Categorical(logits=logits)
+        
+        # Выбираем действие, если не предоставлено
+        if action is None:
+            action = probs.sample()
+            
+        # Вычисляем значение от критика
+        value = self.critic(x_flat)
+        
+        return action, probs.log_prob(action), probs.entropy(), value
+
+    def __deepcopy__(self, memo):
+        copied_agent = MLPAgent(self.envs)
         copied_agent.actor = copy.deepcopy(self.actor, memo)
         copied_agent.critic = copy.deepcopy(self.critic, memo)
         return copied_agent 
