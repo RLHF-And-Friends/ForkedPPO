@@ -37,7 +37,14 @@ class FederatedEnvironment():
 
         self.num_steps = 0
         self.start_time = time.time()
-        self.next_obs = torch.Tensor(envs.reset()).to(device)
+        if args.env_type == "atari":
+            self.next_obs = torch.Tensor(envs.reset()).to(device)
+        elif args.env_type == "minigrid":
+            self.next_obs = torch.tensor(
+                envs.reset(seed=[10 * i * args.n_agents + args.seed * args.n_agents + agent_idx for i in range(args.num_envs)])[0],
+                dtype=torch.float32,
+                device=device
+            )
         self.next_done = torch.zeros(args.num_envs, device=device)
         self.episodic_returns = {}
         self.last_average_episodic_return_between_communications = 0
