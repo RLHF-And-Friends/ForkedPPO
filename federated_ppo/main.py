@@ -20,6 +20,7 @@ ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 Agent: Optional[Union[Type[AtariAgent], Type[MinigridAgent]]] = None
 make_env: Optional[Callable] = None
+make_minigrid_agent: Optional[Callable] = None  # Добавляем переменную для функции создания агента
 
 def average_weights(federated_envs: List[FederatedEnvironment], fedavg_average_weights_mode: str) -> None:
     """
@@ -139,7 +140,14 @@ def generate_federated_system(device: torch.device, args: argparse.Namespace, ru
         
         assert isinstance(envs.single_action_space, gym.spaces.Discrete), "only discrete action space is supported"
 
-        agent: Union[AtariAgent, MinigridAgent] = Agent(envs).to(device)
+        # Создаем агента в зависимости от типа среды
+        if args.env_type == "minigrid":
+            # Используем make_minigrid_agent если это минигрид
+            agent: Union[AtariAgent, MinigridAgent] = make_minigrid_agent(envs, args.agent_with_convolutions).to(device)
+        else:
+            # Для Atari используем стандартное создание
+            agent: Union[AtariAgent, MinigridAgent] = Agent(envs).to(device)
+            
         optimizer: optim.Adam = optim.Adam(agent.parameters(), lr=args.learning_rate, eps=1e-5)
 
         federated_envs.append(FederatedEnvironment(device, args, run_name, envs, agent_idx, agent, optimizer))
@@ -193,7 +201,7 @@ def main() -> None:
     """
     Главная функция для запуска федеративного обучения с подкреплением.
     """
-    global Agent, make_env
+    global Agent, make_env, make_minigrid_agent
     
     # Предварительно анализируем аргументы, чтобы узнать тип среды
     parser: argparse.ArgumentParser = argparse.ArgumentParser()
@@ -214,11 +222,12 @@ def main() -> None:
         make_env = atari_make_env
     else:  # minigrid
         print("Используем MiniGrid среду")
-        from federated_ppo.minigrid.agent import Agent as MinigridAgent
+        from federated_ppo.minigrid.agent import Agent as MinigridAgent, make_agent
         from federated_ppo.minigrid.utils import parse_args, make_env as minigrid_make_env
         
         Agent = MinigridAgent
         make_env = minigrid_make_env
+        make_minigrid_agent = make_agent  # Инициализируем функцию создания агента
     
     # Теперь можем парсить все аргументы
     args: argparse.Namespace = parse_args()

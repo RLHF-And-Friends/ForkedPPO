@@ -8,7 +8,7 @@ from distutils.util import strtobool
 import gym
 import torch.nn.functional as F
 from typing import Optional
-from gym_minigrid.wrappers import RGBImgPartialObsWrapper, ImgObsWrapper, FlatObsWrapper
+from minigrid.wrappers import RGBImgPartialObsWrapper, ImgObsWrapper, FlatObsWrapper
 
 
 def parse_args():
@@ -42,6 +42,8 @@ def parse_args():
         help="weather to capture videos of the agent performances (check out `videos` folder)")
     parser.add_argument("--use-gym-id-in-run-name", type=lambda x: bool(strtobool(x)), default=True, nargs="?", const=True,
         help="run_name format parameter")
+    parser.add_argument("--agent-with-convolutions", type=lambda x: bool(strtobool(x)), default=True, nargs="?", const=True,
+        help="Use agent with convolutional layers, otherwise use MLP agent")
 
     # Algorithm specific arguments
     parser.add_argument("--n-agents", type=int, default=2,
@@ -147,8 +149,15 @@ def make_env(args, gym_id, seed, idx, agent_idx, capture_video, run_name):
     def thunk():
         env = gym.make(gym_id)
         env = gym.wrappers.RecordEpisodeStatistics(env)
-        env = RGBImgPartialObsWrapper(env)
-        env = ImgObsWrapper(env)
+        
+        # Применяем разные обертки в зависимости от типа агента
+        if args.agent_with_convolutions:
+            # Для сверточной нейронной сети используем RGBImgPartialObsWrapper и ImgObsWrapper
+            env = RGBImgPartialObsWrapper(env)
+            env = ImgObsWrapper(env)
+        else:
+            # Для MLP используем FlattenObsWrapper для получения плоского вектора
+            env = FlattenObsWrapper(env)
 
         if capture_video:
             if 'render.modes' not in env.metadata:
@@ -159,9 +168,38 @@ def make_env(args, gym_id, seed, idx, agent_idx, capture_video, run_name):
             if idx == 0 and agent_idx == 0:
                 env = gym.wrappers.RecordVideo(env, os.path.join(args.videos_dir, f"env_{agent_idx}/{run_name}"))
 
+        # env.seed(seed)
         env.action_space.seed(seed)
         env.observation_space.seed(seed)
 
         return env
 
-    return thunk 
+    return thunk
+
+def one_hot(a, size):
+    """Преобразует число в one-hot вектор заданного размера."""
+    b = np.zeros((size))
+    b[a] = 1
+    return b
+
+
+class FlattenObsWrapper(gym.Wrapper):
+    """
+    Обёртка для преобразования наблюдений в плоский вектор,
+    аналогично FlattenObs из gym_minigrid_ppo.py
+    """
+    def __init__(self, env):
+        super().__init__(env)
+        o = self.env.reset()
+        obs = np.append(o['image'].flatten()/255., [one_hot(o['direction'], 4)])
+        self.observation_space = gym.spaces.Box(0, 1, obs.shape)
+
+    def reset(self, **kwargs):
+        o = super().reset(**kwargs)
+        obs = np.append(o['image'].flatten()/255., [one_hot(o['direction'], 4)])
+        return obs
+
+    def step(self, action):
+        o, reward, done, info = super().step(action)
+        obs = np.append(o['image'].flatten()/255., [one_hot(o['direction'], 4)])
+        return obs, reward, done, info 
