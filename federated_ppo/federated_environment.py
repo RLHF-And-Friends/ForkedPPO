@@ -338,6 +338,13 @@ class FederatedEnvironment():
             number_of_communications
         )
 
+        if self.args.track:
+            import wandb
+            wandb.log({
+                f"average_episodic_return/agent_{self.agent_idx}": self.last_average_episodic_return_between_communications,
+                "global_communications": number_of_communications
+            })
+
     def close(self):
         self.envs.close()
         self.writer.close() 
