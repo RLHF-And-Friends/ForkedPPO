@@ -14,4 +14,3 @@ autorom==0.6.1
 wandb==0.12.1
 matplotlib==3.7.4
 imageio-ffmpeg==0.6.0
-minigrid==3.0.0
