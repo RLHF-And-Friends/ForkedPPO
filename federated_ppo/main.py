@@ -11,14 +11,13 @@ import argparse
 import os
 from distutils.util import strtobool
 import pytz
-from typing import List, Optional, Dict, Union, Type, TypeVar, Callable
+from typing import List, Optional, Dict, Union, Type, TypeVar, Callable, Any
 from federated_ppo.federated_environment import FederatedEnvironment
-from federated_ppo.atari.agent import Agent as AtariAgent
-from federated_ppo.minigrid.agent import Agent as MinigridAgent
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-Agent: Optional[Union[Type[AtariAgent], Type[MinigridAgent]]] = None
+# Используем Any для аннотации типа, чтобы избежать импорта конкретных классов
+Agent: Optional[Type[Any]] = None
 make_env: Optional[Callable] = None
 make_minigrid_agent: Optional[Callable] = None  # Добавляем переменную для функции создания агента
 
@@ -32,7 +31,7 @@ def average_weights(federated_envs: List[FederatedEnvironment], fedavg_average_w
             - "classic-avg": простое усреднение (каждый агент имеет одинаковый вес)
             - "communication-avg": усреднение с учетом матрицы коммуникаций
     """
-    agents: List[Union[AtariAgent, MinigridAgent]] = []
+    agents: List = []
     for env in federated_envs:
         agents.append(copy.deepcopy(env.agent))
 
@@ -40,7 +39,7 @@ def average_weights(federated_envs: List[FederatedEnvironment], fedavg_average_w
     n_agents: int = len(federated_envs)
 
     for i, env in enumerate(federated_envs):
-        agent: Union[AtariAgent, MinigridAgent] = env.agent
+        agent = env.agent
         averaged_weights: Dict[str, torch.Tensor] = {key: torch.zeros_like(param) for key, param in agents[0].state_dict().items()}
         
         if fedavg_average_weights_mode == "classic-avg":
@@ -72,9 +71,9 @@ def exchange_weights(federated_envs: List[FederatedEnvironment]) -> None:
     Args:
         federated_envs: Список федеративных окружений с агентами
     """
-    agents: List[Union[AtariAgent, MinigridAgent]] = []
+    agents = []
     for env in federated_envs:
-        agent_copy: Union[AtariAgent, MinigridAgent] = copy.deepcopy(env.agent)
+        agent_copy = copy.deepcopy(env.agent)
         for param in agent_copy.parameters():
             param.requires_grad = False
 
@@ -143,10 +142,10 @@ def generate_federated_system(device: torch.device, args: argparse.Namespace, ru
         # Создаем агента в зависимости от типа среды
         if args.env_type == "minigrid":
             # Используем make_minigrid_agent если это минигрид
-            agent: Union[AtariAgent, MinigridAgent] = make_minigrid_agent(envs, args.agent_with_convolutions).to(device)
+            agent = make_minigrid_agent(envs, args.agent_with_convolutions).to(device)
         else:
             # Для Atari используем стандартное создание
-            agent: Union[AtariAgent, MinigridAgent] = Agent(envs).to(device)
+            agent = Agent(envs).to(device)
             
         optimizer: optim.Adam = optim.Adam(agent.parameters(), lr=args.learning_rate, eps=1e-5)
 
@@ -273,7 +272,7 @@ def main() -> None:
             name=run_name,
             monitor_gym=True, # auto-upload the videos of agents playing the game. Note: we have to log videos manually with minigrid environment
             save_code=True,
-            # mode="offline",
+            mode="offline",
             dir=args.wandb_dir,
             settings=wandb.Settings(
                 start_method="thread",
