@@ -332,6 +332,12 @@ class FederatedEnvironment():
         else:
             self.last_average_episodic_return_between_communications = 0
 
+        self.writer.add_scalar(
+            f"charts/average_episodic_return_between_communications/agent_{self.agent_idx}",
+            self.last_average_episodic_return_between_communications,
+            number_of_communications
+        )
+
     def close(self):
         self.envs.close()
         self.writer.close() 
