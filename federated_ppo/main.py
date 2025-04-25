@@ -264,6 +264,9 @@ def main() -> None:
     if args.track:
         import wandb
 
+        wandb_dir = f"federated_ppo/atari/wandb/{args.wandb_project_name}"
+        os.makedirs(wandb_dir, exist_ok=True)
+
         wandb.init(
             project=args.wandb_project_name,
             entity=args.wandb_entity,
@@ -273,7 +276,7 @@ def main() -> None:
             monitor_gym=True, # auto-upload the videos of agents playing the game. Note: we have to log videos manually with minigrid environment
             save_code=True,
             mode="offline",
-            dir=args.wandb_dir,
+            dir=wandb_dir,
             settings=wandb.Settings(
                 start_method="thread",
                 _disable_stats=True,
