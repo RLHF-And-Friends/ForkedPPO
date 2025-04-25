@@ -193,6 +193,8 @@ def add_env_type_arg(parser: argparse.ArgumentParser) -> argparse.ArgumentParser
         help="Directory where wandb logs will be stored. If None, defaults to ROOT_DIR/{env_type}/wandb")
     parser.add_argument("--videos-dir", type=str, default=None,
         help="Directory where videos will be stored. If None, defaults to ROOT_DIR/{env_type}/videos")
+    parser.add_argument("--wandb-run-id", type=str, default=None,
+        help="Custom ID for wandb run. This will be used as the directory name instead of 'offline-run-DATE_TIME-HASH'")
     return parser
 
 
@@ -263,9 +265,15 @@ def main() -> None:
 
     if args.track:
         import wandb
+        import os as wandb_os
 
         wandb_dir = f"federated_ppo/atari/wandb/{args.wandb_project_name}"
         os.makedirs(wandb_dir, exist_ok=True)
+        
+        if args.wandb_run_id:
+            wandb_os.environ["WANDB_RUN_ID"] = args.wandb_run_id
+        else:
+            wandb_os.environ["WANDB_RUN_ID"] = run_name
 
         wandb.init(
             project=args.wandb_project_name,
