@@ -108,6 +108,15 @@ class FederatedEnvironment():
                             print(f"agent={self.agent_idx}, global_step={self.num_steps}, episodic_return={r}")
                             self.writer.add_scalar(f"charts/episodic_return/agent_{self.agent_idx}", r, self.num_steps)
                             self.writer.add_scalar(f"charts/episodic_length/agent_{self.agent_idx}", l, self.num_steps)
+                            
+                            # Логгирование в wandb с осью x global_step
+                            if self.args.track:
+                                import wandb
+                                wandb.log({
+                                    f"charts/episodic_return/agent_{self.agent_idx}": r,
+                                    f"charts/episodic_length/agent_{self.agent_idx}": l,
+                                    "global_step": self.num_steps
+                                })
 
                             if number_of_communications not in self.episodic_returns:
                                 self.episodic_returns[number_of_communications] = []
@@ -120,6 +129,15 @@ class FederatedEnvironment():
                             print(f"agent={self.agent_idx}, global_step={self.num_steps}, episodic_return={item['episode']['r']}")
                             self.writer.add_scalar(f"charts/episodic_return/agent_{self.agent_idx}", item["episode"]["r"], self.num_steps)
                             self.writer.add_scalar(f"charts/episodic_length/agent_{self.agent_idx}", item["episode"]["l"], self.num_steps)
+                            
+                            # Логгирование в wandb с осью x global_step
+                            if self.args.track:
+                                import wandb
+                                wandb.log({
+                                    f"charts/episodic_return/agent_{self.agent_idx}": item["episode"]["r"],
+                                    f"charts/episodic_length/agent_{self.agent_idx}": item["episode"]["l"],
+                                    "global_step": self.num_steps
+                                })
 
                             if number_of_communications not in self.episodic_returns:
                                 self.episodic_returns[number_of_communications] = []
@@ -325,6 +343,21 @@ class FederatedEnvironment():
             self.writer.add_scalar(f"losses/clipfrac_{self.agent_idx}", np.mean(clipfracs), self.num_steps)
             self.writer.add_scalar(f"losses/explained_variance_{self.agent_idx}", explained_var, self.num_steps)
             self.writer.add_scalar(f"charts/SPS_{self.agent_idx}", int(self.num_steps / (time.time() - self.start_time)), self.num_steps)
+            
+            # Логгирование метрик в wandb с осью x global_step
+            if self.args.track:
+                import wandb
+                wandb.log({
+                    f"charts/learning_rate/agent_{self.agent_idx}": self.optimizer.param_groups[0]["lr"],
+                    f"losses/policy_loss/agent_{self.agent_idx}": pg_loss.item(),
+                    f"losses/value_loss/agent_{self.agent_idx}": v_loss.item(),
+                    f"losses/entropy/agent_{self.agent_idx}": entropy_loss.item(),
+                    f"losses/approx_kl/agent_{self.agent_idx}": approx_kl.item(),
+                    f"losses/clipfrac/agent_{self.agent_idx}": np.mean(clipfracs),
+                    f"losses/explained_variance/agent_{self.agent_idx}": explained_var,
+                    f"charts/SPS/agent_{self.agent_idx}": int(self.num_steps / (time.time() - self.start_time)),
+                    "global_step": self.num_steps,
+                })
 
         # Compute average return between communications
         if number_of_communications in self.episodic_returns and len(self.episodic_returns[number_of_communications]) > 0:
@@ -342,7 +375,8 @@ class FederatedEnvironment():
             import wandb
             wandb.log({
                 f"average_episodic_return/agent_{self.agent_idx}": self.last_average_episodic_return_between_communications,
-                "global_communications": number_of_communications
+                "global_communications": number_of_communications,
+                "global_step": self.num_steps,
             })
 
     def close(self):
