@@ -293,7 +293,7 @@ def main() -> None:
             name=run_name,
             monitor_gym=True, # auto-upload the videos of agents playing the game. Note: we have to log videos manually with minigrid environment
             save_code=True,
-            mode="offline",
+            # mode="offline",
             dir=wandb_dir,
             settings=wandb.Settings(
                 start_method="thread",
@@ -330,6 +330,8 @@ def main() -> None:
                 if args.policy_aggregation_mode == "average_return":
                     update_comm_matrix(federated_envs, args.policy_aggregation_mode)
 
+                exchange_weights(federated_envs, number_of_communications + 1)
+            elif args.n_agents == 1:
                 exchange_weights(federated_envs, number_of_communications + 1)
 
 

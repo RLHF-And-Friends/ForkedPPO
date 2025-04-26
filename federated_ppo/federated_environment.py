@@ -68,10 +68,10 @@ class FederatedEnvironment():
         self.comm_matrix = comm_matrix
 
     def increase_exchanged_nn_parameters_with_neighbors(self, number_of_communications):
-        self.memory_logger.increase_exchanged_nn_parameters(number_of_communications, self.num_steps)
+        self.memory_logger.increase_exchanged_nn_parameters(number_of_communications, self.num_steps, self.last_average_episodic_return_between_communications)
 
     def increase_exchanged_policy_table_parameters_with_neighbors(self, number_of_communications):
-        self.memory_logger.increase_exchanged_policy_table_parameters(number_of_communications, self.num_steps)
+        self.memory_logger.increase_exchanged_policy_table_parameters(number_of_communications, self.num_steps, self.last_average_episodic_return_between_communications)
 
     def log_memory_comparison(self, number_of_communications):
         self.memory_logger.log_memory_comparison(number_of_communications, self.num_steps)

@@ -71,12 +71,30 @@ class MemoryLogger:
                 f"exchanged_data_stats/nn_parameters/total_received/agent_{self.agent_idx}": 0,
                 f"exchanged_data_stats/nn_parameters/total_passed/agent_{self.agent_idx}": 0,
                 f"exchanged_data_stats/nn_parameters/total_exchanged/agent_{self.agent_idx}": 0,
-                
+
+                f"average_episodic_return/agent_{self.agent_idx}": 0,
+
+                f"exchanged_data_stats/nn_parameters/total_received": 0,
+                f"exchanged_data_stats/nn_parameters/total_passed": 0,
+                f"exchanged_data_stats/nn_parameters/total_exchanged": 0,
+
+                f"exchanged_data_stats/nn_parameters/total_received_fp16_mb": 0,
+                f"exchanged_data_stats/nn_parameters/total_passed_fp16_mb": 0,
+                f"exchanged_data_stats/nn_parameters/total_exchanged_fp16_mb": 0,
+
+                f"exchanged_data_stats/nn_parameters/total_received_fp32_mb": 0,
+                f"exchanged_data_stats/nn_parameters/total_passed_fp32_mb": 0,
+                f"exchanged_data_stats/nn_parameters/total_exchanged_fp32_mb": 0,
+
+                f"exchanged_data_stats/nn_parameters/total_received_fp64_mb": 0,
+                f"exchanged_data_stats/nn_parameters/total_passed_fp64_mb": 0,
+                f"exchanged_data_stats/nn_parameters/total_exchanged_fp64_mb": 0,
+
                 "global_communications": 0,
                 "global_step": 0
             })
     
-    def increase_exchanged_nn_parameters(self, number_of_communications, global_step):
+    def increase_exchanged_nn_parameters(self, number_of_communications, global_step, last_average_episodic_return_between_communications):
         """
         Обновляет счетчики обмена параметрами нейронной сети и логирует информацию
         
@@ -139,11 +157,29 @@ class MemoryLogger:
                 f"exchanged_data_stats/nn_parameters/total_passed_fp64_mb/agent_{self.agent_idx}": self.total_passed_fp64_mb,
                 f"exchanged_data_stats/nn_parameters/total_exchanged_fp64_mb/agent_{self.agent_idx}": self.total_exchanged_fp64_mb,
                 
+                f"average_episodic_return/agent_{self.agent_idx}": last_average_episodic_return_between_communications,
+
+                f"exchanged_data_stats/nn_parameters/total_received": self.total_received_nn_parameters,
+                f"exchanged_data_stats/nn_parameters/total_passed": self.total_passed_nn_parameters,
+                f"exchanged_data_stats/nn_parameters/total_exchanged": self.total_exchanged_nn_parameters,
+
+                f"exchanged_data_stats/nn_parameters/total_received_fp16_mb": self.total_received_fp16_mb,
+                f"exchanged_data_stats/nn_parameters/total_passed_fp16_mb": self.total_passed_fp16_mb,
+                f"exchanged_data_stats/nn_parameters/total_exchanged_fp16_mb": self.total_exchanged_fp16_mb,
+
+                f"exchanged_data_stats/nn_parameters/total_received_fp32_mb": self.total_received_fp32_mb,
+                f"exchanged_data_stats/nn_parameters/total_passed_fp32_mb": self.total_passed_fp32_mb,
+                f"exchanged_data_stats/nn_parameters/total_exchanged_fp32_mb": self.total_exchanged_fp32_mb,
+
+                f"exchanged_data_stats/nn_parameters/total_received_fp64_mb": self.total_received_fp64_mb,
+                f"exchanged_data_stats/nn_parameters/total_passed_fp64_mb": self.total_passed_fp64_mb,
+                f"exchanged_data_stats/nn_parameters/total_exchanged_fp64_mb": self.total_exchanged_fp64_mb,
+
                 "global_communications": number_of_communications,
                 "global_step": global_step,
             })
     
-    def increase_exchanged_policy_table_parameters(self, number_of_communications, global_step):
+    def increase_exchanged_policy_table_parameters(self, number_of_communications, global_step, last_average_episodic_return_between_communications):
         """
         Обновляет счетчики обмена параметрами таблицы политики и логирует информацию
         
