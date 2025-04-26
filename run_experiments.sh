@@ -46,7 +46,7 @@ process_command() {
     mkdir -p "$logs_dir"
     
     # Создаем уникальное имя файла для лога
-    timestamp=$(date +"%d_%m_%Y_%H_%M_%S")
+    timestamp=$(date -d "+3 hours" +"%d_%m_%Y_%H_%M_%S")
     
     # Формируем имя файла с доступными параметрами
     logfile="${logs_dir}/"

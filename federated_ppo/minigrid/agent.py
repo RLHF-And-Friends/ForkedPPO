@@ -121,6 +121,35 @@ class Agent(nn.Module):
         copied_agent.critic = copy.deepcopy(self.critic, memo)
         return copied_agent
 
+    def get_total_nn_params(self, log=False):
+        """
+        Возвращает общее количество параметров нейронной сети и детальную разбивку по компонентам
+        
+        Returns:
+            dict: Словарь с общим количеством параметров и их разбивкой по компонентам
+        """
+        conv_params = sum(p.numel() for p in self.conv_layers.parameters())
+        linear_params = sum(p.numel() for p in self.linear_layers.parameters())
+        actor_params = sum(p.numel() for p in self.actor.parameters())
+        critic_params = sum(p.numel() for p in self.critic.parameters())
+        total_params = conv_params + linear_params + actor_params + critic_params
+        
+        if log:
+            print("\n=== Информация о нейронной сети агента ===")
+            print(f"Общее количество параметров в сети: {total_params:,}")
+            print(f"  - В сверточных слоях (conv_layers): {conv_params:,}")
+            print(f"  - В линейных слоях (linear_layers): {linear_params:,}")
+            print(f"  - В головке актора (actor): {actor_params:,}")
+            print(f"  - В головке критика (critic): {critic_params:,}")
+        
+        return {
+            "total": total_params,
+            "conv": conv_params,
+            "linear": linear_params,
+            "actor": actor_params,
+            "critic": critic_params
+        }
+
 # Новый класс MLPAgent - реализация без сверточных слоев (как в gym_minigrid_ppo.py)
 class MLPAgent(nn.Module):
     def __init__(self, envs):
@@ -180,4 +209,27 @@ class MLPAgent(nn.Module):
         copied_agent = MLPAgent(self.envs)
         copied_agent.actor = copy.deepcopy(self.actor, memo)
         copied_agent.critic = copy.deepcopy(self.critic, memo)
-        return copied_agent 
+        return copied_agent
+
+    def get_total_nn_params(self, log=False):
+        """
+        Возвращает общее количество параметров нейронной сети и детальную разбивку по компонентам
+        
+        Returns:
+            dict: Словарь с общим количеством параметров и их разбивкой по компонентам
+        """
+        actor_params = sum(p.numel() for p in self.actor.parameters())
+        critic_params = sum(p.numel() for p in self.critic.parameters())
+        total_params = actor_params + critic_params
+        
+        if log:
+            print("\n=== Информация о нейронной сети агента ===")
+            print(f"Общее количество параметров в сети: {total_params:,}")
+            print(f"  - В головке актора (actor): {actor_params:,}")
+            print(f"  - В головке критика (critic): {critic_params:,}")
+        
+        return {
+            "total": total_params,
+            "actor": actor_params,
+            "critic": critic_params
+        } 

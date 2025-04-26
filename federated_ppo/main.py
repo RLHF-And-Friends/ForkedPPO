@@ -13,6 +13,7 @@ from distutils.util import strtobool
 import pytz
 from typing import List, Optional, Dict, Union, Type, TypeVar, Callable, Any
 from federated_ppo.federated_environment import FederatedEnvironment
+from federated_ppo.utils import set_nn_and_policy_table_memory_comparison_params
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -64,7 +65,7 @@ def average_weights(federated_envs: List[FederatedEnvironment], fedavg_average_w
         agent.load_state_dict(averaged_weights)
 
 
-def exchange_weights(federated_envs: List[FederatedEnvironment]) -> None:
+def exchange_weights(federated_envs: List[FederatedEnvironment], number_of_communications: int) -> None:
     """
     Обменивается весами между агентами в федеративной системе.
     
@@ -81,6 +82,8 @@ def exchange_weights(federated_envs: List[FederatedEnvironment]) -> None:
 
     for env in federated_envs:
         env.set_neighbors(agents)
+    
+    update_exchanged_nn_parameters_stats(federated_envs, number_of_communications)
 
 
 def update_comm_matrix(federated_envs: List[FederatedEnvironment], policy_aggregation_mode: str) -> None:
@@ -103,6 +106,13 @@ def update_comm_matrix(federated_envs: List[FederatedEnvironment], policy_aggreg
 
     for env in federated_envs:
         env.set_comm_matrix(torch.tensor(W, dtype=torch.float32))
+
+def update_exchanged_nn_parameters_stats(federated_envs: List[FederatedEnvironment], number_of_communications: int) -> None:
+    for env in federated_envs:
+        # Note: we also count the number of parameters exchanged with neighbors with zero communication coefficient
+        env.increase_exchanged_nn_parameters_with_neighbors(number_of_communications)
+        # env.increase_exchanged_policy_table_parameters_with_neighbors(number_of_communications)
+        # env.log_memory_comparison(number_of_communications)
 
 
 def generate_federated_system(device: torch.device, args: argparse.Namespace, run_name: str) -> List[FederatedEnvironment]:
@@ -151,8 +161,11 @@ def generate_federated_system(device: torch.device, args: argparse.Namespace, ru
 
         federated_envs.append(FederatedEnvironment(device, args, run_name, envs, agent_idx, agent, optimizer))
 
+    set_nn_and_policy_table_memory_comparison_params(args, agent, envs.envs[0], log=True)
+
     if args.use_comm_penalty or args.use_fedavg:
         from federated_ppo.utils import create_comm_matrix
+
         if args.policy_aggregation_mode == "default":
             comm_matrix = create_comm_matrix(n_agents=args.n_agents, comm_matrix_config=args.comm_matrix_config)
         else:
@@ -161,7 +174,7 @@ def generate_federated_system(device: torch.device, args: argparse.Namespace, ru
         for env in federated_envs:
             env.set_comm_matrix(comm_matrix)
     
-    exchange_weights(federated_envs)
+    exchange_weights(federated_envs, number_of_communications=1)
 
     return federated_envs
 
@@ -270,10 +283,7 @@ def main() -> None:
         wandb_dir = f"federated_ppo/atari/wandb/{args.wandb_project_name}"
         os.makedirs(wandb_dir, exist_ok=True)
         
-        if args.wandb_run_id:
-            wandb_os.environ["WANDB_RUN_ID"] = args.wandb_run_id
-        else:
-            wandb_os.environ["WANDB_RUN_ID"] = run_name
+        wandb_os.environ["WANDB_RUN_ID"] = run_name
 
         wandb.init(
             project=args.wandb_project_name,
@@ -304,7 +314,7 @@ def main() -> None:
     federated_envs = generate_federated_system(device, args, run_name)
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.n_agents) as executor:
-        for number_of_communications in range(0, args.global_updates):
+        for number_of_communications in range(1, args.global_updates + 1):
             print("Number of completed communications: ", number_of_communications)
             futures = []
             for i in range(args.n_agents):
@@ -313,17 +323,19 @@ def main() -> None:
             for future in futures:
                 future.result()
 
-            if args.policy_aggregation_mode == "average_return":
-                update_comm_matrix(federated_envs, args.policy_aggregation_mode)
-
-            if args.use_fedavg or args.use_comm_penalty:
-                exchange_weights(federated_envs)
-
             if args.use_fedavg:
+                exchange_weights(federated_envs, number_of_communications + 1)
                 average_weights(federated_envs, args.fedavg_average_weights_mode)
-                exchange_weights(federated_envs)
+            elif args.use_comm_penalty:
+                if args.policy_aggregation_mode == "average_return":
+                    update_comm_matrix(federated_envs, args.policy_aggregation_mode)
+
+                exchange_weights(federated_envs, number_of_communications + 1)
+
 
             torch.cuda.empty_cache()
+
+        print("Number of completed communications: ", number_of_communications)
 
     for env in federated_envs:
         env.close()

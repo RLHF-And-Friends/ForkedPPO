@@ -14,7 +14,7 @@ python3.9 -m federated_ppo.main \
     --learning-rate=5e-5 \
     --capture-video=True \
     --track=True \
-    --wandb-project-name=FedRL_BeamRiderNoFrameskip
+    --wandb-project-name=FedRL_BeamRiderNoFrameskip-v4
 
 python3.9 -m federated_ppo.main \
     --env-type=atari \
@@ -32,7 +32,7 @@ python3.9 -m federated_ppo.main \
     --learning-rate=1e-4 \
     --capture-video=True \
     --track=True \
-    --wandb-project-name=FedRL_BeamRiderNoFrameskip
+    --wandb-project-name=FedRL_BeamRiderNoFrameskip-v4
 
 python3.9 -m federated_ppo.main \
     --env-type=atari \
@@ -50,7 +50,7 @@ python3.9 -m federated_ppo.main \
     --learning-rate=5e-4 \
     --capture-video=True \
     --track=True \
-    --wandb-project-name=FedRL_BeamRiderNoFrameskip
+    --wandb-project-name=FedRL_BeamRiderNoFrameskip-v4
 
 python3.9 -m federated_ppo.main \
     --env-type=atari \
@@ -68,4 +68,4 @@ python3.9 -m federated_ppo.main \
     --learning-rate=1e-3 \
     --capture-video=True \
     --track=True \
-    --wandb-project-name=FedRL_BeamRiderNoFrameskip
+    --wandb-project-name=FedRL_BeamRiderNoFrameskip-v4

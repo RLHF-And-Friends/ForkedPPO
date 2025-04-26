@@ -47,3 +47,30 @@ class Agent(nn.Module):
         copied_agent.critic = copy.deepcopy(self.critic, memo)
         # Exclude self.envs from deepcopy
         return copied_agent 
+
+    def get_total_nn_params(self, log=False):
+        """
+        Возвращает общее количество параметров нейронной сети (сумму параметров в сетях network, actor и critic)
+        и детальную разбивку по компонентам
+        
+        Returns:
+            dict: Словарь с общим количеством параметров и их разбивкой по компонентам
+        """
+        network_params = sum(p.numel() for p in self.network.parameters())
+        actor_params = sum(p.numel() for p in self.actor.parameters())
+        critic_params = sum(p.numel() for p in self.critic.parameters())
+        total_params = network_params + actor_params + critic_params
+        
+        if log:
+            print("\n=== Информация о нейронной сети агента ===")
+            print(f"Общее количество параметров в сети: {total_params:,}")
+            print(f"  - В основной сети (backbone): {network_params:,}")
+            print(f"  - В головке актора (actor): {actor_params:,}")
+            print(f"  - В головке критика (critic): {critic_params:,}")
+        
+        return {
+            "total": total_params,
+            "network": network_params,
+            "actor": actor_params,
+            "critic": critic_params
+        } 

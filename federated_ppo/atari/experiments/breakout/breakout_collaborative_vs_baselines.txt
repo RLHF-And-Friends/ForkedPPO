@@ -14,7 +14,7 @@ python3.9 -m federated_ppo.main \
     --comm-penalty-coeff=5.0 \
     --capture-video=True \
     --track=True \
-    --wandb-project-name=FedRL_BreakoutNoFrameskip
+    --wandb-project-name=FedRL_BreakoutNoFrameskip-v4
 
 python3.9 -m federated_ppo.main \
     --env-type=atari \
@@ -31,4 +31,4 @@ python3.9 -m federated_ppo.main \
     --penalty-coeff=5.0 \
     --capture-video=True \
     --track=True \
-    --wandb-project-name=FedRL_BreakoutNoFrameskip
+    --wandb-project-name=FedRL_BreakoutNoFrameskip-v4

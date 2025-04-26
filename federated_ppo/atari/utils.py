@@ -126,7 +126,7 @@ def parse_args():
     args.batch_size = int(args.num_envs * args.num_steps)
     args.minibatch_size = int(args.batch_size // args.num_minibatches)
     args.global_updates = int(int(args.total_timesteps // args.batch_size) // args.local_updates)
-    print("Expected number of communications in total: ", args.global_updates)
+    print("Expected number of communications in total (except initialization): ", args.global_updates)
     print("Local updates between communications: ", args.batch_size * args.local_updates)
 
     assert args.objective_mode in [2, 3, 4]

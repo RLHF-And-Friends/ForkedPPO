@@ -7,9 +7,11 @@ import numpy as np
 import wandb
 
 from federated_ppo.utils import compute_kl_divergence
-
+from federated_ppo.memory_logger import MemoryLogger
 
 class FederatedEnvironment():
+    log_dimensions = True
+
     def __init__(self, device, args, run_name, envs, agent_idx, agent, optimizer):
         self.device = device
         self.envs = envs
@@ -49,6 +51,9 @@ class FederatedEnvironment():
         self.episodic_returns = {}
         self.last_average_episodic_return_between_communications = 0
 
+        # Создаем логгер памяти
+        self.memory_logger = MemoryLogger(agent_idx, args, self.writer, args.track)
+
     def _create_agent_without_gradients(self, agent):
         with torch.no_grad():
             agent_copy = copy.deepcopy(agent)
@@ -61,6 +66,15 @@ class FederatedEnvironment():
 
     def set_comm_matrix(self, comm_matrix):
         self.comm_matrix = comm_matrix
+
+    def increase_exchanged_nn_parameters_with_neighbors(self, number_of_communications):
+        self.memory_logger.increase_exchanged_nn_parameters(number_of_communications, self.num_steps)
+
+    def increase_exchanged_policy_table_parameters_with_neighbors(self, number_of_communications):
+        self.memory_logger.increase_exchanged_policy_table_parameters(number_of_communications, self.num_steps)
+
+    def log_memory_comparison(self, number_of_communications):
+        self.memory_logger.log_memory_comparison(number_of_communications, self.num_steps)
 
     def local_update(self, number_of_communications):
         args = self.args
@@ -180,6 +194,19 @@ class FederatedEnvironment():
             b_advantages = advantages.reshape(-1)
             b_returns = returns.reshape(-1)
             b_values = self.values.reshape(-1)
+
+            if FederatedEnvironment.log_dimensions:
+                FederatedEnvironment.log_dimensions = False
+
+                print(f"Агент {self.agent_idx}, шаг {self.num_steps}, размерности тензоров:")
+                print(f"  single_observation_space: {self.envs.single_observation_space.shape}")
+                print(f"  b_obs: {b_obs.shape}")
+                print(f"  b_logprobs: {b_logprobs.shape}")
+                print(f"  b_actions: {b_actions.shape}")
+                print(f"  b_advantages: {b_advantages.shape}")
+                print(f"  b_returns: {b_returns.shape}")
+                print(f"  b_values: {b_values.shape}")
+                print(f"  batch_size: {args.batch_size}, minibatch_size: {args.minibatch_size}")
 
             # Optimizing the policy and value network
             b_inds = np.arange(args.batch_size)

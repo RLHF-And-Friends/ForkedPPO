@@ -13,7 +13,7 @@ python3.9 -m federated_ppo.main \
     --penalty-coeff=5.0 \
     --capture-video=True \
     --track=True \
-    --wandb-project-name=FedRL_BreakoutNoFrameskip \
+    --wandb-project-name=FedRL_BreakoutNoFrameskip-v4 \
     --use-fedavg=True \
     --fedavg-average-weights-mode=classic-avg
 
@@ -32,7 +32,7 @@ python3.9 -m federated_ppo.main \
     --penalty-coeff=5.0 \
     --capture-video=True \
     --track=True \
-    --wandb-project-name=FedRL_BreakoutNoFrameskip \
+    --wandb-project-name=FedRL_BreakoutNoFrameskip-v4 \
     --use-fedavg=True \
     --fedavg-average-weights-mode=classic-avg
 
@@ -51,7 +51,7 @@ python3.9 -m federated_ppo.main \
     --penalty-coeff=5.0 \
     --capture-video=True \
     --track=True \
-    --wandb-project-name=FedRL_BreakoutNoFrameskip \
+    --wandb-project-name=FedRL_BreakoutNoFrameskip-v4 \
     --use-fedavg=True \
     --fedavg-average-weights-mode=classic-avg
 
@@ -70,6 +70,6 @@ python3.9 -m federated_ppo.main \
     --penalty-coeff=5.0 \
     --capture-video=True \
     --track=True \
-    --wandb-project-name=FedRL_BreakoutNoFrameskip \
+    --wandb-project-name=FedRL_BreakoutNoFrameskip-v4 \
     --use-fedavg=True \
     --fedavg-average-weights-mode=classic-avg
