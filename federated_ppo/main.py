@@ -72,16 +72,13 @@ def exchange_weights(federated_envs: List[FederatedEnvironment], number_of_commu
     Args:
         federated_envs: Список федеративных окружений с агентами
     """
-    agents = []
+    # Используем ссылки на previous_version_of_agent вместо создания новых копий
+    previous_versions = []
     for env in federated_envs:
-        agent_copy = copy.deepcopy(env.agent)
-        for param in agent_copy.parameters():
-            param.requires_grad = False
-
-        agents.append(agent_copy)
+        previous_versions.append(env.previous_version_of_agent)
 
     for env in federated_envs:
-        env.set_neighbors(agents)
+        env.set_neighbors(previous_versions)
     
     update_exchanged_nn_parameters_stats(federated_envs, number_of_communications)
 
@@ -307,6 +304,8 @@ def main() -> None:
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
     torch.backends.cudnn.deterministic = args.torch_deterministic
+    
+    torch.backends.cudnn.benchmark = True  # Улучшает производительность для многократного выполнения одних и тех же операций
 
     device = torch.device("cuda" if torch.cuda.is_available() and args.cuda else "cpu")
     print("device: ", device)
