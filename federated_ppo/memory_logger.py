@@ -1,5 +1,6 @@
 import wandb
 import logging
+from federated_ppo.utils import safe_wandb_log
 
 class MemoryLogger:
     """
@@ -59,7 +60,7 @@ class MemoryLogger:
                 
         # Логирование в wandb для нейронной сети
         if self.track:
-            wandb.log({
+            safe_wandb_log({
                 f"exchanged_data_stats/nn_parameters/total_received_fp16_mb/agent_{self.agent_idx}": 0,
                 f"exchanged_data_stats/nn_parameters/total_passed_fp16_mb/agent_{self.agent_idx}": 0,
                 f"exchanged_data_stats/nn_parameters/total_exchanged_fp16_mb/agent_{self.agent_idx}": 0,
@@ -137,7 +138,7 @@ class MemoryLogger:
                                       
         # Логирование в wandb
         if self.track:
-            wandb.log({
+            safe_wandb_log({
                 # Логирование общего количества параметров
                 f"exchanged_data_stats/nn_parameters/total_received/agent_{self.agent_idx}": self.total_received_nn_parameters,
                 f"exchanged_data_stats/nn_parameters/total_passed/agent_{self.agent_idx}": self.total_passed_nn_parameters,

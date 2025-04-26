@@ -7,7 +7,7 @@ import numpy as np
 import wandb
 import logging
 
-from federated_ppo.utils import compute_kl_divergence
+from federated_ppo.utils import compute_kl_divergence, safe_wandb_log
 from federated_ppo.memory_logger import MemoryLogger
 
 class FederatedEnvironment():
@@ -126,7 +126,7 @@ class FederatedEnvironment():
                             self.logger.info(f"global_step={self.num_steps}, episodic_return={r}")
                             
                             if self.args.track:
-                                wandb.log({
+                                safe_wandb_log({
                                     f"charts/episodic_return/agent_{self.agent_idx}": r,
                                     f"charts/episodic_length/agent_{self.agent_idx}": l,
                                     "global_step": self.num_steps
@@ -147,7 +147,7 @@ class FederatedEnvironment():
                             self.logger.info(f"global_step={self.num_steps}, episodic_return={item['episode']['r']}")
                             
                             if self.args.track:
-                                wandb.log({
+                                safe_wandb_log({
                                     f"charts/episodic_return/agent_{self.agent_idx}": item["episode"]["r"],
                                     f"charts/episodic_length/agent_{self.agent_idx}": item["episode"]["l"],
                                     "global_step": self.num_steps
@@ -253,7 +253,7 @@ class FederatedEnvironment():
                                 kl_penalty = compute_kl_divergence(old_b_logprobs, current_b_logprobs)
 
                             if self.args.track:
-                                wandb.log({
+                                safe_wandb_log({
                                     f"charts/kl_penalty/agent_{self.agent_idx}": kl_penalty,
                                     "global_step": self.num_steps
                                 })
@@ -314,7 +314,7 @@ class FederatedEnvironment():
                                 kl_div_with_neighbor = compute_kl_divergence(q_logprob=current_b_logprobs, p_logprob=neighbor_b_logprobs)
                                 
                                 if self.args.track:
-                                    wandb.log({
+                                    safe_wandb_log({
                                         f"charts/kl/agent_{self.agent_idx}/neighbor_{neighbor_agent_idx}": kl_div_with_neighbor,
                                         "global_step": self.num_steps
                                     })
@@ -336,7 +336,7 @@ class FederatedEnvironment():
                                 kl_div_weighted = compute_kl_divergence(weighted_neighbor_b_logprobs, current_b_logprobs)
                             
                             if self.args.track:
-                                wandb.log({
+                                safe_wandb_log({
                                     f"charts/sum_kl/agent_{self.agent_idx}": sum_kl_penalty,
                                     f"charts/weighted_kl/agent_{self.agent_idx}": kl_div_weighted,
                                     "global_step": self.num_steps
@@ -376,7 +376,7 @@ class FederatedEnvironment():
                 if args.use_comm_penalty:
                     loss_fractions_log[f"charts/loss_fractions/comm_penalty_loss/agent_{self.agent_idx}"] = abs(args.comm_penalty_coeff * kl_penalty / abs_loss)
 
-                wandb.log(loss_fractions_log)
+                safe_wandb_log(loss_fractions_log)
             else:
                 # Стандартное логгирование через TensorBoard
                 self.writer.add_scalar(f"charts/loss_fractions/pg_loss/agent_{self.agent_idx}", abs(pg_loss / abs_loss), self.num_steps)
@@ -394,7 +394,7 @@ class FederatedEnvironment():
             explained_var = np.nan if var_y == 0 else 1 - np.var(y_true - y_pred) / var_y
 
             if self.args.track:
-                wandb.log({
+                safe_wandb_log({
                     f"charts/learning_rate/agent_{self.agent_idx}": self.optimizer.param_groups[0]["lr"],
                     f"losses/policy_loss/agent_{self.agent_idx}": pg_loss.item(),
                     f"losses/value_loss/agent_{self.agent_idx}": v_loss.item(),
@@ -429,7 +429,7 @@ class FederatedEnvironment():
         )
 
         if self.args.track:
-            wandb.log({
+            safe_wandb_log({
                 f"average_episodic_return/agent_{self.agent_idx}": self.last_average_episodic_return_between_communications,
                 "global_communications": number_of_communications,
                 "global_step": self.num_steps,

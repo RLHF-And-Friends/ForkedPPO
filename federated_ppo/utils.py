@@ -4,11 +4,26 @@ import numpy as np
 import torch
 import json
 import logging
+import threading
 from distutils.util import strtobool
 from typing import Optional
 
 # Создаем логгер модуля, используя иерархию федеративного проекта
 logger = logging.getLogger("federated_ppo.utils")
+
+# Создаем глобальный объект блокировки для безопасного логирования в wandb
+wandb_lock = threading.Lock()
+
+def safe_wandb_log(data_dict):
+    """
+    Безопасное логирование в wandb с использованием блокировки
+    
+    Args:
+        data_dict: словарь с данными для логирования
+    """
+    import wandb
+    with wandb_lock:
+        wandb.log(data_dict)
 
 def analyze_policy_table_memory(args, agent, env, log=False):
     # Вычисляем размер политики как произведение размера пространства состояний 
