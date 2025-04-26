@@ -5,6 +5,7 @@ import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
 import numpy as np
 import wandb
+import logging
 
 from federated_ppo.utils import compute_kl_divergence
 from federated_ppo.memory_logger import MemoryLogger
@@ -22,7 +23,10 @@ class FederatedEnvironment():
         self.comm_matrix = None
         self.neighbors = None
         self.args = args
-
+        
+        # Используем дочерний логгер от корневого логгера проекта
+        self.logger = logging.getLogger(f"federated_ppo.agent_{self.agent_idx}")
+        
         # ALGO Logic: Storage setup
         self.obs = torch.zeros((args.num_steps, args.num_envs) + envs.single_observation_space.shape, device=device)
         self.actions = torch.zeros((args.num_steps, args.num_envs) + envs.single_action_space.shape, device=device)
@@ -119,18 +123,18 @@ class FederatedEnvironment():
                     for idx, item in enumerate(info["final_info"]):
                         if item is not None and "episode" in item:
                             r, l = item["episode"]["r"], item["episode"]["l"]
-                            print(f"agent={self.agent_idx}, global_step={self.num_steps}, episodic_return={r}")
-                            self.writer.add_scalar(f"charts/episodic_return/agent_{self.agent_idx}", r, self.num_steps)
-                            self.writer.add_scalar(f"charts/episodic_length/agent_{self.agent_idx}", l, self.num_steps)
+                            self.logger.info(f"global_step={self.num_steps}, episodic_return={r}")
                             
-                            # Логгирование в wandb с осью x global_step
                             if self.args.track:
-                                import wandb
                                 wandb.log({
                                     f"charts/episodic_return/agent_{self.agent_idx}": r,
                                     f"charts/episodic_length/agent_{self.agent_idx}": l,
                                     "global_step": self.num_steps
                                 })
+                            else:
+                                self.writer.add_scalar(f"charts/episodic_return/agent_{self.agent_idx}", r, self.num_steps)
+                                self.writer.add_scalar(f"charts/episodic_length/agent_{self.agent_idx}", l, self.num_steps)
+
 
                             if number_of_communications not in self.episodic_returns:
                                 self.episodic_returns[number_of_communications] = []
@@ -140,18 +144,17 @@ class FederatedEnvironment():
                     # Обработка для старого интерфейса Gym
                     for item in info:
                         if "episode" in item.keys():
-                            print(f"agent={self.agent_idx}, global_step={self.num_steps}, episodic_return={item['episode']['r']}")
-                            self.writer.add_scalar(f"charts/episodic_return/agent_{self.agent_idx}", item["episode"]["r"], self.num_steps)
-                            self.writer.add_scalar(f"charts/episodic_length/agent_{self.agent_idx}", item["episode"]["l"], self.num_steps)
+                            self.logger.info(f"global_step={self.num_steps}, episodic_return={item['episode']['r']}")
                             
-                            # Логгирование в wandb с осью x global_step
                             if self.args.track:
-                                import wandb
                                 wandb.log({
                                     f"charts/episodic_return/agent_{self.agent_idx}": item["episode"]["r"],
                                     f"charts/episodic_length/agent_{self.agent_idx}": item["episode"]["l"],
                                     "global_step": self.num_steps
                                 })
+                            else:
+                                self.writer.add_scalar(f"charts/episodic_return/agent_{self.agent_idx}", item["episode"]["r"], self.num_steps)
+                                self.writer.add_scalar(f"charts/episodic_length/agent_{self.agent_idx}", item["episode"]["l"], self.num_steps)
 
                             if number_of_communications not in self.episodic_returns:
                                 self.episodic_returns[number_of_communications] = []
@@ -198,15 +201,15 @@ class FederatedEnvironment():
             if FederatedEnvironment.log_dimensions:
                 FederatedEnvironment.log_dimensions = False
 
-                print(f"Агент {self.agent_idx}, шаг {self.num_steps}, размерности тензоров:")
-                print(f"  single_observation_space: {self.envs.single_observation_space.shape}")
-                print(f"  b_obs: {b_obs.shape}")
-                print(f"  b_logprobs: {b_logprobs.shape}")
-                print(f"  b_actions: {b_actions.shape}")
-                print(f"  b_advantages: {b_advantages.shape}")
-                print(f"  b_returns: {b_returns.shape}")
-                print(f"  b_values: {b_values.shape}")
-                print(f"  batch_size: {args.batch_size}, minibatch_size: {args.minibatch_size}")
+                self.logger.debug(f"Размерности тензоров:")
+                self.logger.debug(f"  single_observation_space: {self.envs.single_observation_space.shape}")
+                self.logger.debug(f"  b_obs: {b_obs.shape}")
+                self.logger.debug(f"  b_logprobs: {b_logprobs.shape}")
+                self.logger.debug(f"  b_actions: {b_actions.shape}")
+                self.logger.debug(f"  b_advantages: {b_advantages.shape}")
+                self.logger.debug(f"  b_returns: {b_returns.shape}")
+                self.logger.debug(f"  b_values: {b_values.shape}")
+                self.logger.debug(f"  batch_size: {args.batch_size}, minibatch_size: {args.minibatch_size}")
 
             # Optimizing the policy and value network
             b_inds = np.arange(args.batch_size)
@@ -249,7 +252,13 @@ class FederatedEnvironment():
                             else:
                                 kl_penalty = compute_kl_divergence(old_b_logprobs, current_b_logprobs)
 
-                            self.writer.add_scalar(f"charts/kl_penalty/agent_{self.agent_idx}", kl_penalty, self.num_steps)
+                            if self.args.track:
+                                wandb.log({
+                                    f"charts/kl_penalty/agent_{self.agent_idx}": kl_penalty,
+                                    "global_step": self.num_steps
+                                })
+                            else:
+                                self.writer.add_scalar(f"charts/kl_penalty/agent_{self.agent_idx}", kl_penalty, self.num_steps)
 
                             # For first batch pg_loss_2 = 0 since self.previous_version_of_agent is equal to self.agent
                             pg_loss2 = args.penalty_coeff * kl_penalty
@@ -303,7 +312,14 @@ class FederatedEnvironment():
                                 _, neighbor_b_logprobs, _, _ = neighbor_agent.get_action_and_value(b_obs[mb_inds], b_actions.long()[mb_inds])
 
                                 kl_div_with_neighbor = compute_kl_divergence(q_logprob=current_b_logprobs, p_logprob=neighbor_b_logprobs)
-                                self.writer.add_scalar(f"charts/kl/agent_{self.agent_idx}/neighbor_{neighbor_agent_idx}", kl_div_with_neighbor, self.num_steps)
+                                
+                                if self.args.track:
+                                    wandb.log({
+                                        f"charts/kl/agent_{self.agent_idx}/neighbor_{neighbor_agent_idx}": kl_div_with_neighbor,
+                                        "global_step": self.num_steps
+                                    })
+                                else:
+                                    self.writer.add_scalar(f"charts/kl/agent_{self.agent_idx}/neighbor_{neighbor_agent_idx}", kl_div_with_neighbor, self.num_steps)
                                 
                                 sum_kl_penalty += comm_coeff * kl_div_with_neighbor
                                 weighted_neighbor_b_logprobs += comm_coeff * neighbor_b_logprobs
@@ -318,9 +334,16 @@ class FederatedEnvironment():
                             else:
                                 # ppo
                                 kl_div_weighted = compute_kl_divergence(weighted_neighbor_b_logprobs, current_b_logprobs)
-
-                            self.writer.add_scalar(f"charts/sum_kl/agent_{self.agent_idx}", sum_kl_penalty, self.num_steps)
-                            self.writer.add_scalar(f"charts/weighted_kl/agent_{self.agent_idx}", kl_div_weighted, self.num_steps)
+                            
+                            if self.args.track:
+                                wandb.log({
+                                    f"charts/sum_kl/agent_{self.agent_idx}": sum_kl_penalty,
+                                    f"charts/weighted_kl/agent_{self.agent_idx}": kl_div_weighted,
+                                    "global_step": self.num_steps
+                                })
+                            else:
+                                self.writer.add_scalar(f"charts/sum_kl/agent_{self.agent_idx}", sum_kl_penalty, self.num_steps)
+                                self.writer.add_scalar(f"charts/weighted_kl/agent_{self.agent_idx}", kl_div_weighted, self.num_steps)
 
 
                             if args.sum_kl_divergencies:
@@ -334,15 +357,6 @@ class FederatedEnvironment():
                         loss += args.comm_penalty_coeff * kl_penalty
                         abs_loss += abs(args.comm_penalty_coeff * kl_penalty)  # for logging
 
-                    self.writer.add_scalar(f"charts/loss_fractions/pg_loss/agent_{self.agent_idx}", abs(pg_loss / abs_loss), self.num_steps)
-                    
-                    if args.use_comm_penalty:
-                        self.writer.add_scalar(f"charts/loss_fractions/comm_penalty_loss/agent_{self.agent_idx}", abs(args.comm_penalty_coeff * kl_penalty / abs_loss), self.num_steps)
-
-                    self.writer.add_scalar(f"charts/loss_fractions/entropy_loss/agent_{self.agent_idx}", abs(entropy_loss * args.ent_coef / abs_loss), self.num_steps)
-                    
-                    self.writer.add_scalar(f"charts/loss_fractions/value_loss/agent_{self.agent_idx}", abs(v_loss * args.vf_coef / abs_loss), self.num_steps)
-
                     self.optimizer.zero_grad()
                     loss.backward()
                     nn.utils.clip_grad_norm_(self.agent.parameters(), args.max_grad_norm)
@@ -352,6 +366,25 @@ class FederatedEnvironment():
                     if approx_kl > args.target_kl:
                         break
 
+            if self.args.track:
+                loss_fractions_log = {
+                    f"charts/loss_fractions/pg_loss/agent_{self.agent_idx}": abs(pg_loss / abs_loss),
+                }                
+                loss_fractions_log[f"charts/loss_fractions/entropy_loss/agent_{self.agent_idx}"] = abs(entropy_loss * args.ent_coef / abs_loss)
+                loss_fractions_log[f"charts/loss_fractions/value_loss/agent_{self.agent_idx}"] = abs(v_loss * args.vf_coef / abs_loss)
+                loss_fractions_log["global_step"] = self.num_steps
+                if args.use_comm_penalty:
+                    loss_fractions_log[f"charts/loss_fractions/comm_penalty_loss/agent_{self.agent_idx}"] = abs(args.comm_penalty_coeff * kl_penalty / abs_loss)
+
+                wandb.log(loss_fractions_log)
+            else:
+                # Стандартное логгирование через TensorBoard
+                self.writer.add_scalar(f"charts/loss_fractions/pg_loss/agent_{self.agent_idx}", abs(pg_loss / abs_loss), self.num_steps)
+                self.writer.add_scalar(f"charts/loss_fractions/entropy_loss/agent_{self.agent_idx}", abs(entropy_loss * args.ent_coef / abs_loss), self.num_steps)
+                self.writer.add_scalar(f"charts/loss_fractions/value_loss/agent_{self.agent_idx}", abs(v_loss * args.vf_coef / abs_loss), self.num_steps)
+                if args.use_comm_penalty:
+                    self.writer.add_scalar(f"charts/loss_fractions/comm_penalty_loss/agent_{self.agent_idx}", abs(args.comm_penalty_coeff * kl_penalty / abs_loss), self.num_steps)
+
             self.previous_version_of_agent.load_state_dict(self.agent.state_dict())
             for param in self.previous_version_of_agent.parameters():
                 param.requires_grad = False
@@ -360,20 +393,7 @@ class FederatedEnvironment():
             var_y = np.var(y_true)
             explained_var = np.nan if var_y == 0 else 1 - np.var(y_true - y_pred) / var_y
 
-            # Record data for plotting
-            self.writer.add_scalar(f"charts/learning_rate/agent_{self.agent_idx}", self.optimizer.param_groups[0]["lr"], self.num_steps)
-            self.writer.add_scalar(f"losses/policy_loss/agent_{self.agent_idx}", pg_loss.item(), self.num_steps)
-            self.writer.add_scalar(f"losses/value_loss/agent_{self.agent_idx}", v_loss.item(), self.num_steps)
-            self.writer.add_scalar(f"losses/entropy_{self.agent_idx}", entropy_loss.item(), self.num_steps)
-            self.writer.add_scalar(f"losses/old_approx_kl_{self.agent_idx}", old_approx_kl.item(), self.num_steps)
-            self.writer.add_scalar(f"losses/approx_kl_{self.agent_idx}", approx_kl.item(), self.num_steps)
-            self.writer.add_scalar(f"losses/clipfrac_{self.agent_idx}", np.mean(clipfracs), self.num_steps)
-            self.writer.add_scalar(f"losses/explained_variance_{self.agent_idx}", explained_var, self.num_steps)
-            self.writer.add_scalar(f"charts/SPS_{self.agent_idx}", int(self.num_steps / (time.time() - self.start_time)), self.num_steps)
-            
-            # Логгирование метрик в wandb с осью x global_step
             if self.args.track:
-                import wandb
                 wandb.log({
                     f"charts/learning_rate/agent_{self.agent_idx}": self.optimizer.param_groups[0]["lr"],
                     f"losses/policy_loss/agent_{self.agent_idx}": pg_loss.item(),
@@ -385,6 +405,16 @@ class FederatedEnvironment():
                     f"charts/SPS/agent_{self.agent_idx}": int(self.num_steps / (time.time() - self.start_time)),
                     "global_step": self.num_steps,
                 })
+            else:
+                self.writer.add_scalar(f"charts/learning_rate/agent_{self.agent_idx}", self.optimizer.param_groups[0]["lr"], self.num_steps)
+                self.writer.add_scalar(f"losses/policy_loss/agent_{self.agent_idx}", pg_loss.item(), self.num_steps)
+                self.writer.add_scalar(f"losses/value_loss/agent_{self.agent_idx}", v_loss.item(), self.num_steps)
+                self.writer.add_scalar(f"losses/entropy_{self.agent_idx}", entropy_loss.item(), self.num_steps)
+                self.writer.add_scalar(f"losses/old_approx_kl_{self.agent_idx}", old_approx_kl.item(), self.num_steps)
+                self.writer.add_scalar(f"losses/approx_kl_{self.agent_idx}", approx_kl.item(), self.num_steps)
+                self.writer.add_scalar(f"losses/clipfrac_{self.agent_idx}", np.mean(clipfracs), self.num_steps)
+                self.writer.add_scalar(f"losses/explained_variance_{self.agent_idx}", explained_var, self.num_steps)
+                self.writer.add_scalar(f"charts/SPS_{self.agent_idx}", int(self.num_steps / (time.time() - self.start_time)), self.num_steps)
 
         # Compute average return between communications
         if number_of_communications in self.episodic_returns and len(self.episodic_returns[number_of_communications]) > 0:
@@ -399,7 +429,6 @@ class FederatedEnvironment():
         )
 
         if self.args.track:
-            import wandb
             wandb.log({
                 f"average_episodic_return/agent_{self.agent_idx}": self.last_average_episodic_return_between_communications,
                 "global_communications": number_of_communications,

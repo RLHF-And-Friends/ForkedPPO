@@ -3,6 +3,10 @@ import torch
 import torch.nn as nn
 from torch.distributions.categorical import Categorical
 import copy
+import logging
+
+# Создаем логгер для модуля
+logger = logging.getLogger("federated_ppo.atari.agent")
 
 
 def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
@@ -62,11 +66,11 @@ class Agent(nn.Module):
         total_params = network_params + actor_params + critic_params
         
         if log:
-            print("\n=== Информация о нейронной сети агента ===")
-            print(f"Общее количество параметров в сети: {total_params:,}")
-            print(f"  - В основной сети (backbone): {network_params:,}")
-            print(f"  - В головке актора (actor): {actor_params:,}")
-            print(f"  - В головке критика (critic): {critic_params:,}")
+            logger.info("\n=== Информация о нейронной сети агента ===")
+            logger.info(f"Общее количество параметров в сети: {total_params:,}")
+            logger.info(f"  - В основной сети (backbone): {network_params:,}")
+            logger.info(f"  - В головке актора (actor): {actor_params:,}")
+            logger.info(f"  - В головке критика (critic): {critic_params:,}")
         
         return {
             "total": total_params,

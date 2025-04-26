@@ -11,6 +11,7 @@ import argparse
 import os
 from distutils.util import strtobool
 import pytz
+import logging
 from typing import List, Optional, Dict, Union, Type, TypeVar, Callable, Any
 from federated_ppo.federated_environment import FederatedEnvironment
 from federated_ppo.utils import set_nn_and_policy_table_memory_comparison_params
@@ -219,6 +220,23 @@ def main() -> None:
     """
     global Agent, make_env, make_minigrid_agent
     
+    # Централизованная настройка логгирования для всего проекта
+    root_logger = logging.getLogger("federated_ppo")
+    root_logger.setLevel(logging.INFO)
+    
+    # Удаляем существующие обработчики, чтобы избежать дублирования
+    if root_logger.handlers:
+        for handler in root_logger.handlers:
+            root_logger.removeHandler(handler)
+    
+    # Добавляем консольный обработчик
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+    root_logger.addHandler(console_handler)
+    
+    # Создаем логгер для модуля main
+    logger = logging.getLogger("federated_ppo.main")
+    
     # Предварительно анализируем аргументы, чтобы узнать тип среды
     parser: argparse.ArgumentParser = argparse.ArgumentParser()
     parser = add_env_type_arg(parser)
@@ -230,14 +248,14 @@ def main() -> None:
     
     # Импортируем нужные модули в зависимости от типа среды
     if env_type == "atari":
-        print("Используем Atari среду")
+        logger.info("Используем Atari среду")
         from federated_ppo.atari.agent import Agent as AtariAgent
         from federated_ppo.atari.utils import parse_args, make_env as atari_make_env
         
         Agent = AtariAgent
         make_env = atari_make_env
     else:  # minigrid
-        print("Используем MiniGrid среду")
+        logger.info("Используем MiniGrid среду")
         from federated_ppo.minigrid.agent import Agent as MinigridAgent, make_agent
         from federated_ppo.minigrid.utils import parse_args, make_env as minigrid_make_env
         
@@ -313,13 +331,13 @@ def main() -> None:
     torch.backends.cudnn.benchmark = True  # Улучшает производительность для многократного выполнения одних и тех же операций
 
     device = torch.device("cuda" if torch.cuda.is_available() and args.cuda else "cpu")
-    print("device: ", device)
+    logger.info(f"device: {device}")
 
     federated_envs = generate_federated_system(device, args, run_name)
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.n_agents) as executor:
         for number_of_communications in range(1, args.global_updates + 1):
-            print("Number of completed communications: ", number_of_communications)
+            logger.info(f"Number of completed communications: {number_of_communications}")
             futures = []
             for i in range(args.n_agents):
                 futures.append(executor.submit(local_update, federated_envs[i], number_of_communications))
@@ -342,7 +360,7 @@ def main() -> None:
 
             torch.cuda.empty_cache()
 
-        print("Number of completed communications: ", number_of_communications)
+        logger.info(f"Number of completed communications: {number_of_communications}")
 
     for env in federated_envs:
         env.close()

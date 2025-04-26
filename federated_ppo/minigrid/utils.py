@@ -9,7 +9,10 @@ import gym
 import torch.nn.functional as F
 from typing import Optional
 from minigrid.wrappers import RGBImgPartialObsWrapper, ImgObsWrapper, FlatObsWrapper
+import logging
 
+# Создаем логгер для модуля
+logger = logging.getLogger("federated_ppo.minigrid.utils")
 
 def parse_args():
     # fmt: off
@@ -122,8 +125,9 @@ def parse_args():
     args.batch_size = int(args.num_envs * args.num_steps)
     args.minibatch_size = int(args.batch_size // args.num_minibatches)
     args.global_updates = int(int(args.total_timesteps // args.batch_size) // args.local_updates)
-    print("Expected number of communications in total: ", args.global_updates)
-    print("Local updates between communications: ", args.batch_size * args.local_updates)
+    
+    logger.info("Expected number of communications in total: %s", args.global_updates)
+    logger.info("Local updates between communications: %s", args.batch_size * args.local_updates)
 
     assert args.objective_mode in [2, 3, 4]
     assert args.policy_aggregation_mode in ["default", "average_return", "scalar_product"]
@@ -131,7 +135,7 @@ def parse_args():
     if args.policy_aggregation_mode == "scalar_product":
         assert args.n_agents % 3 == 0 and args.n_agents >= 3
         args.agents_per_group = args.n_agents // 3
-        print("Agents per group: ", args.agents_per_group)
+        logger.info("Agents per group: %s", args.agents_per_group)
     elif args.policy_aggregation_mode == "average_return":
         assert args.n_agents >= 3
 

@@ -1,4 +1,5 @@
 import wandb
+import logging
 
 class MemoryLogger:
     """
@@ -14,12 +15,15 @@ class MemoryLogger:
             agent_idx: индекс агента
             args: аргументы запуска
             writer: SummaryWriter для TensorBoard
-            track: флаг для логирования в wandb
+            track: флаг для логгирования в wandb
         """
         self.agent_idx = agent_idx
         self.args = args
         self.writer = writer
         self.track = track
+        
+        # Настраиваем логгер
+        self.logger = logging.getLogger(f"federated_ppo.memory_logger.agent_{self.agent_idx}")
         
         # Счетчики переданных/полученных параметров нейронной сети
         self.total_passed_nn_parameters = 0

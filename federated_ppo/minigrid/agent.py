@@ -6,6 +6,10 @@ import numpy as np
 import copy
 import gym
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
+import logging
+
+# Создаем логгер для модуля
+logger = logging.getLogger("federated_ppo.minigrid.agent")
 
 
 def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
@@ -26,10 +30,10 @@ def make_agent(envs, agent_with_convolutions=True):
         Agent или MLPAgent в зависимости от agent_with_convolutions
     """
     if agent_with_convolutions:
-        print("Creating agent with convolutional layers")
+        logger.info("Creating agent with convolutional layers")
         return Agent(envs)
     else:
-        print("Creating MLP agent without convolutional layers")
+        logger.info("Creating MLP agent without convolutional layers")
         return MLPAgent(envs)
 
 class Agent(nn.Module):
@@ -62,8 +66,8 @@ class Agent(nn.Module):
             n_flatten = int(np.prod(conv_output.shape))
         
         self.n_flatten = n_flatten  # Сохраняем для отладки
-        print(f"Calculated n_flatten: {n_flatten}")
-        print(f"Conv output shape: {conv_output.shape}")
+        logger.debug(f"Calculated n_flatten: {n_flatten}")
+        logger.debug(f"Conv output shape: {conv_output.shape}")
         
         # Создаем оставшуюся часть сети
         self.linear_layers = nn.Sequential(
@@ -95,7 +99,7 @@ class Agent(nn.Module):
         
         # Проверяем размерности для отладки
         if batch_size == 1:
-            print(f"Forward conv output shape: {x.shape}, expected n_flatten: {self.n_flatten}")
+            logger.debug(f"Forward conv output shape: {x.shape}, expected n_flatten: {self.n_flatten}")
         
         # Линеаризуем и пропускаем через линейные слои
         x = self.linear_layers(x)
@@ -135,12 +139,12 @@ class Agent(nn.Module):
         total_params = conv_params + linear_params + actor_params + critic_params
         
         if log:
-            print("\n=== Информация о нейронной сети агента ===")
-            print(f"Общее количество параметров в сети: {total_params:,}")
-            print(f"  - В сверточных слоях (conv_layers): {conv_params:,}")
-            print(f"  - В линейных слоях (linear_layers): {linear_params:,}")
-            print(f"  - В головке актора (actor): {actor_params:,}")
-            print(f"  - В головке критика (critic): {critic_params:,}")
+            logger.info("\n=== Информация о нейронной сети агента ===")
+            logger.info(f"Общее количество параметров в сети: {total_params:,}")
+            logger.info(f"  - В сверточных слоях (conv_layers): {conv_params:,}")
+            logger.info(f"  - В линейных слоях (linear_layers): {linear_params:,}")
+            logger.info(f"  - В головке актора (actor): {actor_params:,}")
+            logger.info(f"  - В головке критика (critic): {critic_params:,}")
         
         return {
             "total": total_params,
@@ -178,8 +182,8 @@ class MLPAgent(nn.Module):
             layer_init(nn.Linear(64, envs.single_action_space.n), std=0.01),
         )
         
-        print(f"MLPAgent initialized with input_dim: {input_dim}")
-        print(f"Observation shape: {obs_shape}")
+        logger.debug(f"MLPAgent initialized with input_dim: {input_dim}")
+        logger.debug(f"Observation shape: {obs_shape}")
 
     def get_value(self, x):
         # Преобразуем входные данные в плоский вектор
@@ -223,10 +227,10 @@ class MLPAgent(nn.Module):
         total_params = actor_params + critic_params
         
         if log:
-            print("\n=== Информация о нейронной сети агента ===")
-            print(f"Общее количество параметров в сети: {total_params:,}")
-            print(f"  - В головке актора (actor): {actor_params:,}")
-            print(f"  - В головке критика (critic): {critic_params:,}")
+            logger.info("\n=== Информация о нейронной сети агента ===")
+            logger.info(f"Общее количество параметров в сети: {total_params:,}")
+            logger.info(f"  - В головке актора (actor): {actor_params:,}")
+            logger.info(f"  - В головке критика (critic): {critic_params:,}")
         
         return {
             "total": total_params,
