@@ -32,37 +32,42 @@ def average_weights(federated_envs: List[FederatedEnvironment], fedavg_average_w
             - "classic-avg": простое усреднение (каждый агент имеет одинаковый вес)
             - "communication-avg": усреднение с учетом матрицы коммуникаций
     """
-    agents: List = []
-    for env in federated_envs:
-        agents.append(copy.deepcopy(env.agent))
-
-    state_dict_keys = agents[0].state_dict().keys()
     n_agents: int = len(federated_envs)
-
-    for i, env in enumerate(federated_envs):
-        agent = env.agent
-        averaged_weights: Dict[str, torch.Tensor] = {key: torch.zeros_like(param) for key, param in agents[0].state_dict().items()}
+    
+    # Получаем state_dict первого агента для извлечения ключей
+    first_agent_state_dict = federated_envs[0].agent.state_dict()
+    state_dict_keys = first_agent_state_dict.keys()
+    
+    if fedavg_average_weights_mode == "classic-avg":
+        # Для classic-avg вычисляем усреднение один раз, так как результат будет одинаковым для всех агентов
+        averaged_weights = {key: torch.zeros_like(param) for key, param in first_agent_state_dict.items()}
         
-        if fedavg_average_weights_mode == "classic-avg":
-            # Простое усреднение - все агенты имеют одинаковый вес
-            for key in state_dict_keys:
-                for neighbor_agent in agents:
-                    neighbor_agent_weights = neighbor_agent.state_dict()
-                    averaged_weights[key] += neighbor_agent_weights[key] / n_agents
-        else:
+        # Вычисляем средние веса один раз
+        for key in state_dict_keys:
+            for env in federated_envs:
+                averaged_weights[key] += env.agent.state_dict()[key] / n_agents
+        
+        # Загружаем одинаковые веса во всех агентов
+        for env in federated_envs:
+            env.agent.load_state_dict(averaged_weights)
+    else:
+        # Для режима с матрицей коммуникаций нужны индивидуальные расчеты для каждого агента
+        for i, env in enumerate(federated_envs):
+            agent = env.agent
+            averaged_weights = {key: torch.zeros_like(param) for key, param in first_agent_state_dict.items()}
+            
             # Усреднение с учетом матрицы коммуникаций
             for key in state_dict_keys:
                 denom: float = 0.0
-                for j, neighbor_agent in enumerate(agents):
-                    neighbor_agent_weights = neighbor_agent.state_dict()
-                    averaged_weights[key] += env.comm_matrix[i, j] * neighbor_agent_weights[key]
+                for j, env_j in enumerate(federated_envs):
+                    averaged_weights[key] += env.comm_matrix[i, j] * env_j.agent.state_dict()[key]
                     denom += env.comm_matrix[i, j]
                 
                 # Предотвращаем деление на ноль
                 if denom > 0:
                     averaged_weights[key] /= denom
-
-        agent.load_state_dict(averaged_weights)
+            
+            agent.load_state_dict(averaged_weights)
 
 
 def exchange_weights(federated_envs: List[FederatedEnvironment], number_of_communications: int) -> None:
@@ -325,6 +330,7 @@ def main() -> None:
             if args.use_fedavg:
                 exchange_weights(federated_envs, number_of_communications + 1)
                 average_weights(federated_envs, args.fedavg_average_weights_mode)
+                # Note: we do not exchange weights again, because with classic-avg they will be the same
             elif args.use_comm_penalty:
                 if args.policy_aggregation_mode == "average_return":
                     update_comm_matrix(federated_envs, args.policy_aggregation_mode)
