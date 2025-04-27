@@ -151,7 +151,7 @@ def get_agent_group_id(agent_idx, args):
 
 def make_env(args, gym_id, seed, idx, agent_idx, capture_video, run_name):
     def thunk():
-        env = gym.make(gym_id)
+        env = gym.make(gym_id, render_mode="rgb_array")
         env = gym.wrappers.RecordEpisodeStatistics(env)
         
         # Применяем разные обертки в зависимости от типа агента
