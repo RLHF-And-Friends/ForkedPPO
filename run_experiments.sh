@@ -7,6 +7,7 @@ if [ -z "$1" ]; then
 fi
 
 COMMANDS_FILE="$1"
+PARENT_DIR_NAME=$(basename "$(dirname "$COMMANDS_FILE")")
 
 export WANDB_API_KEY="88d8539f0a96d23135216aca56233e046cd229f6"
 export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
@@ -36,10 +37,11 @@ process_command() {
     env_type=$(echo "$full_cmd" | grep -o "\--env-type=[^ ]*" | sed 's/--env-type=//')
 
     if [ "$env_type" = "minigrid" ]; then
-        logs_dir="federated_ppo/minigrid/logs"
+        logs_dir="federated_ppo/minigrid/logs/${PARENT_DIR_NAME}"
+    elif [ "$env_type" = "mujoco" ]; then
+        logs_dir="federated_ppo/mujoco/logs/${PARENT_DIR_NAME}"
     else
-        # По умолчанию используем atari
-        logs_dir="federated_ppo/atari/logs"
+        logs_dir="federated_ppo/atari/logs/${PARENT_DIR_NAME}"
     fi
 
     # Создаем директорию для логов, если она не существует
