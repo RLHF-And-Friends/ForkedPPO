@@ -38,14 +38,27 @@ process_command() {
 
     if [ "$env_type" = "minigrid" ]; then
         logs_dir="federated_ppo/minigrid/logs/${PARENT_DIR_NAME}"
+        env_logs_dir="federated_ppo/minigrid/logs"
     elif [ "$env_type" = "mujoco" ]; then
         logs_dir="federated_ppo/mujoco/logs/${PARENT_DIR_NAME}"
+        env_logs_dir="federated_ppo/mujoco/logs"
     else
         logs_dir="federated_ppo/atari/logs/${PARENT_DIR_NAME}"
+        env_logs_dir="federated_ppo/atari/logs"
     fi
 
     # Создаем директорию для логов, если она не существует
     mkdir -p "$logs_dir"
+    
+    # Записываем информацию о текущем запуске в history.log соответствующего окружения
+    timestamp_now=$(date -d "+3 hours" +"%d/%m/%Y,%H:%M:%S")
+    history_log="${env_logs_dir}/history.log"
+    # Если файл не существует, создаем его с заголовком
+    if [ ! -f "$history_log" ]; then
+        echo "timestamp,commands_file" > "$history_log"
+    fi
+    # Добавляем новую запись в формате CSV
+    echo "${timestamp_now},${COMMANDS_FILE}" >> "$history_log"
     
     # Создаем уникальное имя файла для лога
     timestamp=$(date -d "+3 hours" +"%d_%m_%Y_%H_%M_%S")
