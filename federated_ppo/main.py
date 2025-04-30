@@ -15,6 +15,8 @@ import logging
 from typing import List, Optional, Dict, Union, Type, TypeVar, Callable, Any
 from federated_ppo.federated_environment import FederatedEnvironment
 from federated_ppo.utils import set_nn_and_policy_table_memory_comparison_params
+import re
+
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -150,16 +152,22 @@ def generate_federated_system(device: torch.device, args: argparse.Namespace, ru
             ]
         )
         
-        assert isinstance(envs.single_action_space, gym.spaces.Discrete), "only discrete action space is supported"
+        if args.env_type == "atari" or args.env_type == "minigrid":
+            assert isinstance(envs.single_action_space, gym.spaces.Discrete), "only discrete action space is supported"
+        elif args.env_type == "mujoco":
+            assert isinstance(envs.single_action_space, gym.spaces.Box), "only continuous action space is supported"
+
 
         # Создаем агента в зависимости от типа среды
         if args.env_type == "minigrid":
             # Используем make_minigrid_agent если это минигрид
             agent = make_minigrid_agent(envs, args.agent_with_convolutions).to(device)
-        else:
+        elif args.env_type == "atari":
             # Для Atari используем стандартное создание
             agent = Agent(envs).to(device)
-            
+        elif args.env_type == "mujoco":
+            agent = Agent(envs).to(device)
+
         optimizer: optim.Adam = optim.Adam(agent.parameters(), lr=args.learning_rate, eps=1e-5)
 
         federated_envs.append(FederatedEnvironment(device, args, run_name, envs, agent_idx, agent, optimizer))
@@ -203,7 +211,7 @@ def add_env_type_arg(parser: argparse.ArgumentParser) -> argparse.ArgumentParser
     Returns:
         Обновленный объект парсера аргументов
     """
-    parser.add_argument("--env-type", type=str, choices=["atari", "minigrid"], default="atari",
+    parser.add_argument("--env-type", type=str, choices=["atari", "minigrid", "mujoco"], default="atari",
         help="Type of environment to use (atari or minigrid)")
     parser.add_argument("--wandb-dir", type=str, default=None,
         help="Directory where wandb logs will be stored. If None, defaults to ROOT_DIR/{env_type}/wandb")
@@ -254,7 +262,14 @@ def main() -> None:
         
         Agent = AtariAgent
         make_env = atari_make_env
-    else:  # minigrid
+    elif env_type == "mujoco":
+        logger.info("Используем Mujoco среду")
+        from federated_ppo.mujoco.agent import Agent as MujocoAgent
+        from federated_ppo.mujoco.utils import parse_args, make_env as mujoco_make_env
+        
+        Agent = MujocoAgent
+        make_env = mujoco_make_env
+    elif env_type == "minigrid":  # minigrid
         logger.info("Используем MiniGrid среду")
         from federated_ppo.minigrid.agent import Agent as MinigridAgent, make_agent
         from federated_ppo.minigrid.utils import parse_args, make_env as minigrid_make_env
@@ -296,6 +311,9 @@ def main() -> None:
     current_time = datetime.datetime.now(utc_plus_3).strftime("%d_%m_%Y_%H_%M_%S")
     run_name += f"__{current_time}"
 
+    safe_run_name = re.sub(r"[^a-zA-Z0-9_.-]", "_", run_name)
+
+
     if args.track:
         import wandb
         import os as wandb_os
@@ -303,7 +321,7 @@ def main() -> None:
         wandb_dir = f"federated_ppo/atari/wandb/{args.wandb_project_name}"
         os.makedirs(wandb_dir, exist_ok=True)
         
-        wandb_os.environ["WANDB_RUN_ID"] = run_name
+        wandb_os.environ["WANDB_RUN_ID"] = safe_run_name
 
         wandb.init(
             project=args.wandb_project_name,
@@ -313,7 +331,7 @@ def main() -> None:
             name=run_name,
             monitor_gym=True, # auto-upload the videos of agents playing the game. Note: we have to log videos manually with minigrid environment
             save_code=True,
-            # mode="offline",
+            mode="offline",
             dir=wandb_dir,
             settings=wandb.Settings(
                 start_method="thread",
