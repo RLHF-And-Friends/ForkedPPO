@@ -318,7 +318,7 @@ def main() -> None:
         import wandb
         import os as wandb_os
 
-        wandb_dir = f"federated_ppo/atari/wandb/{args.wandb_project_name}"
+        wandb_dir = f"federated_ppo/{args.env_type}/wandb/{args.wandb_project_name}"
         os.makedirs(wandb_dir, exist_ok=True)
         
         wandb_os.environ["WANDB_RUN_ID"] = safe_run_name
