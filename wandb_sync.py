@@ -22,7 +22,7 @@ def sync_single_folder(path, index, total):
         return path, False, "Путь не существует"
         
     try:        
-        result = subprocess.run(["wandb", "sync", "--project=FedRL_ALE_Assault-v5", path], check=True)
+        result = subprocess.run(["wandb", "sync", path], check=True)
         
         return path, True, None
     except subprocess.CalledProcessError as e:
