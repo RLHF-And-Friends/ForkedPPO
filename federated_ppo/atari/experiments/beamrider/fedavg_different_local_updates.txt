@@ -1,6 +1,6 @@
 python3.9 -m federated_ppo.main \
     --env-type=atari \
-    --gym-id=AsterixNoFrameskip-v4 \
+    --gym-id=BeamRiderNoFrameskip-v4 \
     --exp-name=fedavg_16_local_epochs \
     --setup-id=comm_penalty_5_0 \
     --policy-aggregation-mode=average_return \
@@ -10,17 +10,17 @@ python3.9 -m federated_ppo.main \
     --seed=0 \
     --objective-mode=3 \
     --use-comm-penalty=false \
-    --learning-rate=5e-4 \
-    --penalty-coeff=5.0 \
+    --penalty-coeff=20.0 \
+    --learning-rate=2.5e-4 \
     --capture-video=True \
     --track=True \
-    --wandb-project-name=FedRL_AsterixNoFrameskip-v4 \
+    --wandb-project-name=FedRL_BeamRiderNoFrameskip-v4 \
     --use-fedavg=True \
     --fedavg-average-weights-mode=classic-avg
 
 python3.9 -m federated_ppo.main \
     --env-type=atari \
-    --gym-id=AsterixNoFrameskip-v4 \
+    --gym-id=BeamRiderNoFrameskip-v4 \
     --exp-name=fedavg_32_local_epochs \
     --setup-id=comm_penalty_5_0 \
     --policy-aggregation-mode=average_return \
@@ -30,17 +30,17 @@ python3.9 -m federated_ppo.main \
     --seed=0 \
     --objective-mode=3 \
     --use-comm-penalty=false \
-    --learning-rate=5e-4 \
-    --penalty-coeff=5.0 \
+    --penalty-coeff=20.0 \
+    --learning-rate=2.5e-4 \
     --capture-video=True \
     --track=True \
-    --wandb-project-name=FedRL_AsterixNoFrameskip-v4 \
+    --wandb-project-name=FedRL_BeamRiderNoFrameskip-v4 \
     --use-fedavg=True \
     --fedavg-average-weights-mode=classic-avg
 
 python3.9 -m federated_ppo.main \
     --env-type=atari \
-    --gym-id=AsterixNoFrameskip-v4 \
+    --gym-id=BeamRiderNoFrameskip-v4 \
     --exp-name=fedavg_64_local_epochs \
     --setup-id=comm_penalty_5_0 \
     --policy-aggregation-mode=average_return \
@@ -50,50 +50,30 @@ python3.9 -m federated_ppo.main \
     --seed=0 \
     --objective-mode=3 \
     --use-comm-penalty=false \
-    --learning-rate=5e-4 \
-    --penalty-coeff=5.0 \
+    --penalty-coeff=20.0 \
+    --learning-rate=2.5e-4 \
     --capture-video=True \
     --track=True \
-    --wandb-project-name=FedRL_AsterixNoFrameskip-v4 \
+    --wandb-project-name=FedRL_BeamRiderNoFrameskip-v4 \
     --use-fedavg=True \
     --fedavg-average-weights-mode=classic-avg
 
 python3.9 -m federated_ppo.main \
     --env-type=atari \
-    --gym-id=AsterixNoFrameskip-v4 \
+    --gym-id=BeamRiderNoFrameskip-v4 \
     --exp-name=fedavg_128_local_epochs \
     --setup-id=comm_penalty_5_0 \
     --policy-aggregation-mode=average_return \
     --n-agents=3 \
     --total-timesteps=10000000 \
     --local-updates=128 \
-    --learning-rate=5e-4 \
     --seed=0 \
     --objective-mode=3 \
     --use-comm-penalty=false \
-    --penalty-coeff=5.0 \
+    --penalty-coeff=20.0 \
+    --learning-rate=2.5e-4 \
     --capture-video=True \
     --track=True \
-    --wandb-project-name=FedRL_AsterixNoFrameskip-v4 \
-    --use-fedavg=True \
-    --fedavg-average-weights-mode=classic-avg
-
-python3.9 -m federated_ppo.main \
-    --env-type=atari \
-    --gym-id=AsterixNoFrameskip-v4 \
-    --exp-name=fedavg_256_local_epochs \
-    --setup-id=comm_penalty_5_0 \
-    --policy-aggregation-mode=average_return \
-    --n-agents=3 \
-    --total-timesteps=10000000 \
-    --local-updates=256 \
-    --learning-rate=5e-4 \
-    --seed=0 \
-    --objective-mode=3 \
-    --use-comm-penalty=false \
-    --penalty-coeff=5.0 \
-    --capture-video=True \
-    --track=True \
-    --wandb-project-name=FedRL_AsterixNoFrameskip-v4 \
+    --wandb-project-name=FedRL_BeamRiderNoFrameskip-v4 \
     --use-fedavg=True \
     --fedavg-average-weights-mode=classic-avg
