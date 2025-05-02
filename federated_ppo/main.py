@@ -50,9 +50,16 @@ def average_weights(federated_envs: List[FederatedEnvironment], fedavg_average_w
             for env in federated_envs:
                 averaged_weights[key] += env.agent.state_dict()[key] / n_agents
         
-        # Загружаем одинаковые веса во всех агентов
+        # Загружаем усреднённую политику для всех агентов и присваиваем её их референсной политике
         for env in federated_envs:
+            # Обновляем веса текущей политики агента
             env.agent.load_state_dict(averaged_weights)
+            
+            # Обновляем веса референсной политики агента (равна текущей политике)
+            with torch.no_grad():
+                env.previous_version_of_agent.load_state_dict(averaged_weights)
+                for param in env.previous_version_of_agent.parameters():
+                    param.requires_grad = False
     else:
         # Для режима с матрицей коммуникаций нужны индивидуальные расчеты для каждого агента
         for i, env in enumerate(federated_envs):
@@ -70,7 +77,14 @@ def average_weights(federated_envs: List[FederatedEnvironment], fedavg_average_w
                 if denom > 0:
                     averaged_weights[key] /= denom
             
+            # Обновляем веса текущей политики агента
             agent.load_state_dict(averaged_weights)
+            
+            # Обновляем веса референсной политики агента (равна текущей политике)
+            with torch.no_grad():
+                env.previous_version_of_agent.load_state_dict(averaged_weights)
+                for param in env.previous_version_of_agent.parameters():
+                    param.requires_grad = False
 
 
 def exchange_weights(federated_envs: List[FederatedEnvironment], number_of_communications: int) -> None:
