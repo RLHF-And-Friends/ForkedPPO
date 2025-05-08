@@ -140,6 +140,29 @@ class FederatedEnvironment():
                                 self.episodic_returns[number_of_communications] = []
                             
                             self.episodic_returns[number_of_communications].append(r)
+                elif "_final_observation" in info and self.args.env_type == "minigrid":
+                    # Специальная обработка для minigrid, как в legacy_fedrl
+                    for i in range(self.args.num_envs):
+                        if info['_final_observation'][i]:
+                            item = info['final_info'][i]
+                            if "episode" in item.keys():
+                                r, l = item["episode"]["r"], item["episode"]["l"]
+                                self.logger.info(f"global_step={self.num_steps}, episodic_return={r}")
+                                
+                                if self.args.track:
+                                    safe_wandb_log({
+                                        f"charts/episodic_return/agent_{self.agent_idx}": r,
+                                        f"charts/episodic_length/agent_{self.agent_idx}": l,
+                                        "global_step": self.num_steps
+                                    })
+                                else:
+                                    self.writer.add_scalar(f"charts/episodic_return/agent_{self.agent_idx}", r, self.num_steps)
+                                    self.writer.add_scalar(f"charts/episodic_length/agent_{self.agent_idx}", l, self.num_steps)
+
+                                if number_of_communications not in self.episodic_returns:
+                                    self.episodic_returns[number_of_communications] = []
+                                
+                                self.episodic_returns[number_of_communications].append(r)
                 else:
                     # Обработка для старого интерфейса Gym
                     for item in info:
