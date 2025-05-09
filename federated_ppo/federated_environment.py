@@ -118,56 +118,34 @@ class FederatedEnvironment():
                 self.next_obs, self.next_done = torch.Tensor(next_obs).to(self.device), torch.Tensor(done).to(self.device)
 
                 # Log episodic returns for tracking agent performance
-                if "final_info" in info:
-                    # Обработка для нового интерфейса Gym (0.26+)
-                    for idx, item in enumerate(info["final_info"]):
-                        if item is not None and "episode" in item:
-                            r, l = item["episode"]["r"], item["episode"]["l"]
-                            self.logger.info(f"global_step={self.num_steps}, episodic_return={r}")
-                            
-                            if self.args.track:
-                                safe_wandb_log({
-                                    f"charts/episodic_return/agent_{self.agent_idx}": r,
-                                    f"charts/episodic_length/agent_{self.agent_idx}": l,
-                                    "global_step": self.num_steps
-                                })
-                            else:
-                                self.writer.add_scalar(f"charts/episodic_return/agent_{self.agent_idx}", r, self.num_steps)
-                                self.writer.add_scalar(f"charts/episodic_length/agent_{self.agent_idx}", l, self.num_steps)
+                if args.env_type == "minigrid":
+                    if "_final_observation" in info:
+                        for i in range(self.args.num_envs):
+                            if info['_final_observation'][i]:
+                                item = info['final_info'][i]
+                                if "episode" in item.keys():
+                                    r, l = item["episode"]["r"], item["episode"]["l"]
+                                    self.logger.info(f"New gym interface. global_step={self.num_steps}, episodic_return={r}")
+                                    
+                                    if self.args.track:
+                                        safe_wandb_log({
+                                            f"charts/episodic_return/agent_{self.agent_idx}": r,
+                                            f"charts/episodic_length/agent_{self.agent_idx}": l,
+                                            "global_step": self.num_steps
+                                        })
+                                    else:
+                                        self.writer.add_scalar(f"charts/episodic_return/agent_{self.agent_idx}", r, self.num_steps)
+                                        self.writer.add_scalar(f"charts/episodic_length/agent_{self.agent_idx}", l, self.num_steps)
 
-
-                            if number_of_communications not in self.episodic_returns:
-                                self.episodic_returns[number_of_communications] = []
-                            
-                            self.episodic_returns[number_of_communications].append(r)
-                elif "_final_observation" in info and self.args.env_type == "minigrid":
-                    # Специальная обработка для minigrid, как в legacy_fedrl
-                    for i in range(self.args.num_envs):
-                        if info['_final_observation'][i]:
-                            item = info['final_info'][i]
-                            if "episode" in item.keys():
-                                r, l = item["episode"]["r"], item["episode"]["l"]
-                                self.logger.info(f"global_step={self.num_steps}, episodic_return={r}")
-                                
-                                if self.args.track:
-                                    safe_wandb_log({
-                                        f"charts/episodic_return/agent_{self.agent_idx}": r,
-                                        f"charts/episodic_length/agent_{self.agent_idx}": l,
-                                        "global_step": self.num_steps
-                                    })
-                                else:
-                                    self.writer.add_scalar(f"charts/episodic_return/agent_{self.agent_idx}", r, self.num_steps)
-                                    self.writer.add_scalar(f"charts/episodic_length/agent_{self.agent_idx}", l, self.num_steps)
-
-                                if number_of_communications not in self.episodic_returns:
-                                    self.episodic_returns[number_of_communications] = []
-                                
-                                self.episodic_returns[number_of_communications].append(r)
+                                    if number_of_communications not in self.episodic_returns:
+                                        self.episodic_returns[number_of_communications] = []
+                                    
+                                    self.episodic_returns[number_of_communications].append(r)
                 else:
                     # Обработка для старого интерфейса Gym
                     for item in info:
                         if "episode" in item.keys():
-                            self.logger.info(f"global_step={self.num_steps}, episodic_return={item['episode']['r']}")
+                            self.logger.info(f"Old gym interface. global_step={self.num_steps}, episodic_return={item['episode']['r']}")
                             
                             if self.args.track:
                                 safe_wandb_log({

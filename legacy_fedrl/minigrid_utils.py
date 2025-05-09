@@ -12,10 +12,11 @@ def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
 
 
 class MinigridFeaturesExtractor(BaseFeaturesExtractor):
-    def __init__(self, observation_space: gym.Space, features_dim: int = 512, normalized_image: bool = False) -> None:
-        super().__init__(observation_space, features_dim)
-        n_input_channels = observation_space.shape[2]
+    def __init__(self, single_observation_space: gym.Space, features_dim: int = 512, normalized_image: bool = False) -> None:
+        super().__init__(single_observation_space, features_dim)
+        n_input_channels = single_observation_space.shape[2]
         # print("n_input_channels: ", n_input_channels)
+        print(f"Single observation space: {single_observation_space}")
 
         activation_function = nn.Tanh
 
@@ -36,7 +37,9 @@ class MinigridFeaturesExtractor(BaseFeaturesExtractor):
 
         # Compute shape by doing one forward pass
         with torch.no_grad():
-            n_flatten = self.cnn(torch.as_tensor(np.transpose(observation_space.sample(), (2, 0, 1))[None]).float()).shape[1]
+            cnn_output = self.cnn(torch.as_tensor(np.transpose(single_observation_space.sample(), (2, 0, 1))[None]).float())
+            print(f"CNN output shape: {cnn_output.shape}")
+            n_flatten = cnn_output.shape[1]
 
         self.linear = nn.Sequential(layer_init(nn.Linear(n_flatten, features_dim)), activation_function())
 

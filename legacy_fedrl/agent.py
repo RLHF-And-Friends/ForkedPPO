@@ -20,9 +20,10 @@ class Agent(nn.Module):
         self.envs = envs
 
         if is_grid:
-            # print("grid env: Single obs space: ", self.envs.single_observation_space)
-            self.network = MinigridFeaturesExtractor(observation_space=self.envs.single_observation_space, features_dim=128)
+            print("grid env: Single obs space: ", self.envs.single_observation_space)
+            self.network = MinigridFeaturesExtractor(single_observation_space=self.envs.single_observation_space, features_dim=128)
         else:
+            print("non-grid env: Single obs space: ", self.envs.single_observation_space)
             self.network = nn.Sequential(
                 layer_init(nn.Linear(np.array(envs.single_observation_space.shape).prod(), 64)),
                 nn.Tanh(),
@@ -34,6 +35,8 @@ class Agent(nn.Module):
 
         self.actor = layer_init(nn.Linear(128, envs.single_action_space.n), std=0.01)
         self.critic = layer_init(nn.Linear(128, 1), std=1)
+
+        print(f"Agent initialized. {self}")
 
     def get_value(self, x):
         return self.critic(self.network(x))

@@ -45,6 +45,8 @@ class Agent(nn.Module):
         
         n_input_channels = envs.single_observation_space.shape[2]
         
+        logger.info(f"Single observation space: {envs.single_observation_space}")
+
         # Создаем сверточные слои отдельно от Sequential для возможности расчета n_flatten
         self.conv_layers = nn.Sequential(
             layer_init(nn.Conv2d(n_input_channels, 16, (2, 2))),
@@ -62,12 +64,13 @@ class Agent(nn.Module):
         
         with torch.no_grad():
             conv_output = self.conv_layers(sample_input)
+            logger.info(f"Conv output shape: {conv_output.shape}")
             # Вычисляем размер линеаризованного выхода
             n_flatten = int(np.prod(conv_output.shape))
         
         self.n_flatten = n_flatten  # Сохраняем для отладки
-        logger.debug(f"Calculated n_flatten: {n_flatten}")
-        logger.debug(f"Conv output shape: {conv_output.shape}")
+        logger.info(f"Calculated n_flatten: {n_flatten}")
+        logger.info(f"Conv output shape: {conv_output.shape}")
         
         # Создаем оставшуюся часть сети
         self.linear_layers = nn.Sequential(
@@ -79,6 +82,7 @@ class Agent(nn.Module):
         self.actor = layer_init(nn.Linear(features_dim, envs.single_action_space.n), std=0.01)
         self.critic = layer_init(nn.Linear(features_dim, 1), std=1)
 
+        logger.info(f"Agent is initialized. {self}")
     def forward_impl(self, observations):
         """
         Преобразование наблюдений через слои нейронной сети.

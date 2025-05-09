@@ -151,13 +151,13 @@ def get_agent_group_id(agent_idx, args):
 
 def make_env(args, gym_id, seed, idx, agent_idx, capture_video, run_name):
     def thunk():
+        logger.info(f"Making minigrid env with gym_id: {gym_id}")
         env = gym.make(gym_id, render_mode="rgb_array")
         env = gym.wrappers.RecordEpisodeStatistics(env)
         
         # Применяем разные обертки в зависимости от типа агента
         if args.agent_with_convolutions:
-            # Для сверточной нейронной сети используем RGBImgPartialObsWrapper и ImgObsWrapper
-            env = RGBImgPartialObsWrapper(env)
+            # env = RGBImgPartialObsWrapper(env) - вместо Box(0, 255, (7, 7, 3), uint8) будет Box(0, 255, (56, 56, 3), uint8)
             env = ImgObsWrapper(env)
         else:
             # Для MLP используем FlattenObsWrapper для получения плоского вектора
