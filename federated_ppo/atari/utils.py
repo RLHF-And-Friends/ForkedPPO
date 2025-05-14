@@ -88,10 +88,16 @@ def parse_args():
     parser.add_argument("--use-fedavg", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True,
         help="Use FedAVG or not")
     parser.add_argument(
-        "--fedavg-average-weights-mode", type=str, default="classic-avg",
+        "--fedavg-average-weights-mode", type=str, default="classic-average",
         help="Two modes for FedAVG:\n" \
-        "1. classic-avg: just average\n" \
-        "2. communication-avg: average with communication matrix\n"
+        "1. classic-average: just average\n" \
+        "2. weighted-average: average with communication matrix\n"
+    )
+    parser.add_argument(
+        "--fedrl-average-policies-mode", type=str, default="weighted-average",
+        help="Two modes for FedRL:\n" \
+        "1. weighted-average: average with communication matrix\n"
+        "2. classic-average: just average\n" \
     )
 
     # PPO specific arguments
@@ -135,8 +141,10 @@ def parse_args():
 
     assert args.objective_mode in [2, 3, 4]
     assert args.policy_aggregation_mode in ["default", "average_return", "scalar_product"]
-    assert args.fedavg_average_weights_mode in ["classic-avg", "communication-avg"]
+    assert args.fedavg_average_weights_mode in ["classic-average", "weighted-average"]
     assert not (args.use_fedavg and args.use_comm_penalty)
+
+    assert args.fedrl_average_policies_mode in ["weighted-average", "classic-average"]
 
     # fmt: on
     return args

@@ -17,6 +17,8 @@ from federated_ppo.federated_environment import FederatedEnvironment
 from federated_ppo.utils import set_nn_and_policy_table_memory_comparison_params
 import re
 
+# Создаем логгер для модуля main
+logger = logging.getLogger("federated_ppo.main")
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -32,8 +34,8 @@ def average_weights(federated_envs: List[FederatedEnvironment], fedavg_average_w
     Args:
         federated_envs: Список федеративных окружений с агентами
         fedavg_average_weights_mode: Режим усреднения весов
-            - "classic-avg": простое усреднение (каждый агент имеет одинаковый вес)
-            - "communication-avg": усреднение с учетом матрицы коммуникаций
+            - "classic-average": простое усреднение (каждый агент имеет одинаковый вес)
+            - "weighted-average": усреднение с учетом матрицы коммуникаций
     """
     n_agents: int = len(federated_envs)
     
@@ -41,8 +43,9 @@ def average_weights(federated_envs: List[FederatedEnvironment], fedavg_average_w
     first_agent_state_dict = federated_envs[0].agent.state_dict()
     state_dict_keys = first_agent_state_dict.keys()
     
-    if fedavg_average_weights_mode == "classic-avg":
-        # Для classic-avg вычисляем усреднение один раз, так как результат будет одинаковым для всех агентов
+    if fedavg_average_weights_mode == "classic-average":
+        logger.info("FedAvg average weights mode: classic-average")
+        # Для classic-average вычисляем усреднение один раз, так как результат будет одинаковым для всех агентов
         averaged_weights = {key: torch.zeros_like(param) for key, param in first_agent_state_dict.items()}
         
         # Вычисляем средние веса один раз
@@ -61,6 +64,7 @@ def average_weights(federated_envs: List[FederatedEnvironment], fedavg_average_w
                 for param in env.previous_version_of_agent.parameters():
                     param.requires_grad = False
     else:
+        logger.info("FedAvg average weights mode: weighted-average")
         # Для режима с матрицей коммуникаций нужны индивидуальные расчеты для каждого агента
         for i, env in enumerate(federated_envs):
             agent = env.agent
@@ -105,7 +109,7 @@ def exchange_weights(federated_envs: List[FederatedEnvironment], number_of_commu
     update_exchanged_nn_parameters_stats(federated_envs, number_of_communications)
 
 
-def update_comm_matrix(federated_envs: List[FederatedEnvironment], policy_aggregation_mode: str) -> None:
+def update_comm_matrix(federated_envs: List[FederatedEnvironment], policy_aggregation_mode: str, fedrl_average_policies_mode: str) -> None:
     """
     Обновляет матрицу коммуникаций на основе производительности агентов.
     
@@ -116,12 +120,19 @@ def update_comm_matrix(federated_envs: List[FederatedEnvironment], policy_aggreg
     # Note: it could be non-symmetric in case of "average_return"
     assert policy_aggregation_mode == "average_return"
 
-    n: int = len(federated_envs)
-    a: np.ndarray = np.zeros(n)
-    for i, env in enumerate(federated_envs):
-        a[i] = env.last_average_episodic_return_between_communications
+    n_agents: int = len(federated_envs)
+    a: np.ndarray = np.zeros(n_agents)
 
-    W: np.ndarray = np.tile(a, (n, 1))
+    if fedrl_average_policies_mode == "weighted-average":
+        logger.info("FedRL average policies mode: weighted-average")
+        for i, env in enumerate(federated_envs):
+            a[i] = env.last_average_episodic_return_between_communications
+    elif fedrl_average_policies_mode == "classic-average":
+        logger.info("FedRL average policies mode: classic-average")
+        for i, env in enumerate(federated_envs):
+            a[i] = 1 / n_agents
+
+    W: np.ndarray = np.tile(a, (n_agents, 1))
 
     for env in federated_envs:
         env.set_comm_matrix(torch.tensor(W, dtype=torch.float32))
@@ -256,9 +267,6 @@ def main() -> None:
     console_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
     root_logger.addHandler(console_handler)
     
-    # Создаем логгер для модуля main
-    logger = logging.getLogger("federated_ppo.main")
-    
     # Предварительно анализируем аргументы, чтобы узнать тип среды
     parser: argparse.ArgumentParser = argparse.ArgumentParser()
     parser = add_env_type_arg(parser)
@@ -311,6 +319,17 @@ def main() -> None:
         args.mode += "-PPO"
     elif args.objective_mode == 4:
         args.mode += "-MDPO"
+    
+    if args.use_fedavg:
+        if args.fedavg_average_weights_mode == "weighted-average":
+            args.mode += "-WeightedAvg"
+        elif args.fedavg_average_weights_mode == "classic-average":
+            args.mode += "-ClassicAvg"
+    elif args.use_comm_penalty:
+        if args.fedrl_average_policies_mode == "weighted-average":
+            args.mode += "-WeightedAvg"
+        elif args.fedrl_average_policies_mode == "classic-average":
+            args.mode += "-ClassicAvg"
 
     os.makedirs(args.wandb_dir, exist_ok=True)
     os.makedirs(args.videos_dir, exist_ok=True)
@@ -365,6 +384,7 @@ def main() -> None:
                 _disable_stats=True,
             )
         )
+        wandb.config.update({"mode": args.mode})
         wandb.run.log_code(".", include_fn=lambda path: path.endswith(".py"))
 
     # Seeding
@@ -391,12 +411,16 @@ def main() -> None:
                 future.result()
 
             if args.use_fedavg:
+                if args.fedavg_average_weights_mode == "weighted-average":
+                    update_comm_matrix(federated_envs, args.policy_aggregation_mode, args.fedavg_average_weights_mode)
+
                 exchange_weights(federated_envs, number_of_communications + 1)
                 average_weights(federated_envs, args.fedavg_average_weights_mode)
-                # Note: we do not exchange weights again, because with classic-avg they will be the same
+
+                # Note: we do not exchange weights, because we do not use neighbors weights in FedAvg between communications
             elif args.use_comm_penalty:
                 if args.policy_aggregation_mode == "average_return":
-                    update_comm_matrix(federated_envs, args.policy_aggregation_mode)
+                    update_comm_matrix(federated_envs, args.policy_aggregation_mode, args.fedrl_average_policies_mode)
 
                 exchange_weights(federated_envs, number_of_communications + 1)
             elif args.n_agents == 1:

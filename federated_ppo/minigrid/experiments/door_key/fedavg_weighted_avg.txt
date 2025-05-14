@@ -1,6 +1,6 @@
 python3.9 -m federated_ppo.main \
     --env-type=minigrid \
-    --gym-id=MiniGrid-SimpleCrossingS9N2-v0 \
+    --gym-id=MiniGrid-DoorKey-6x6-v0 \
     --exp-name=fedavg_32_local_epochs \
     --setup-id=penalty_coeff_0.8 \
     --policy-aggregation-mode=average_return \
@@ -14,13 +14,13 @@ python3.9 -m federated_ppo.main \
     --learning-rate=2.5e-4 \
     --capture-video=false \
     --track=True \
-    --wandb-project-name=FedRL_SimpleCrossingS9N2-v0
+    --wandb-project-name=FedRL_DoorKey-6x6-v0
     --use-fedavg=True \
-    --fedavg-average-weights-mode=classic-average
+    --fedavg-average-weights-mode=weighted-average
 
 python3.9 -m federated_ppo.main \
     --env-type=minigrid \
-    --gym-id=MiniGrid-SimpleCrossingS9N2-v0 \
+    --gym-id=MiniGrid-DoorKey-6x6-v0 \
     --exp-name=fedavg_32_local_epochs \
     --setup-id=penalty_coeff_0.4 \
     --policy-aggregation-mode=average_return \
@@ -34,6 +34,6 @@ python3.9 -m federated_ppo.main \
     --learning-rate=2.5e-4 \
     --capture-video=false \
     --track=True \
-    --wandb-project-name=FedRL_SimpleCrossingS9N2-v0
+    --wandb-project-name=FedRL_DoorKey-6x6-v0
     --use-fedavg=True \
-    --fedavg-average-weights-mode=classic-average
+    --fedavg-average-weights-mode=weighted-average

@@ -16,7 +16,7 @@ python3.9 -m federated_ppo.main \
     --track=True \
     --wandb-project-name=FedRL_ALE_CrazyClimber-v5 \
     --use-fedavg=True \
-    --fedavg-average-weights-mode=classic-avg
+    --fedavg-average-weights-mode=classic-average
 
 python3.9 -m federated_ppo.main \
     --env-type=atari \
@@ -36,7 +36,7 @@ python3.9 -m federated_ppo.main \
     --track=True \
     --wandb-project-name=FedRL_ALE_CrazyClimber-v5 \
     --use-fedavg=True \
-    --fedavg-average-weights-mode=classic-avg
+    --fedavg-average-weights-mode=classic-average
 
 python3.9 -m federated_ppo.main \
     --env-type=atari \
@@ -56,7 +56,7 @@ python3.9 -m federated_ppo.main \
     --track=True \
     --wandb-project-name=FedRL_ALE_CrazyClimber-v5 \
     --use-fedavg=True \
-    --fedavg-average-weights-mode=classic-avg
+    --fedavg-average-weights-mode=classic-average
 
 python3.9 -m federated_ppo.main \
     --env-type=atari \
@@ -76,4 +76,4 @@ python3.9 -m federated_ppo.main \
     --track=True \
     --wandb-project-name=FedRL_ALE_CrazyClimber-v5 \
     --use-fedavg=True \
-    --fedavg-average-weights-mode=classic-avg
+    --fedavg-average-weights-mode=classic-average

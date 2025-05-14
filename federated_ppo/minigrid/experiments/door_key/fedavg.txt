@@ -16,7 +16,7 @@ python3.9 -m federated_ppo.main \
     --track=True \
     --wandb-project-name=FedRL_DoorKey-6x6-v0
     --use-fedavg=True \
-    --fedavg-average-weights-mode=classic-avg
+    --fedavg-average-weights-mode=classic-average
 
 python3.9 -m federated_ppo.main \
     --env-type=minigrid \
@@ -36,4 +36,4 @@ python3.9 -m federated_ppo.main \
     --track=True \
     --wandb-project-name=FedRL_DoorKey-6x6-v0
     --use-fedavg=True \
-    --fedavg-average-weights-mode=classic-avg
+    --fedavg-average-weights-mode=classic-average
