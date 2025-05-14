@@ -1,0 +1,67 @@
+python3.9 -m federated_ppo.main \
+    --env-type=minigrid \
+    --gym-id=MiniGrid-DoorKey-6x6-v0 \
+    --exp-name=collaborative_penalty_comparison \
+    --setup-id=seed_0 \
+    --policy-aggregation-mode=average_return \
+    --n-agents=3 \
+    --total-timesteps=5000000 \
+    --local-updates=32 \
+    --seed=0 \
+    --objective-mode=3 \
+    --use-comm-penalty=True \
+    --comm-penalty-coeff=0.8 \
+    --capture-video=False \
+    --track=True \
+    --wandb-project-name=FedRL_DoorKey-6x6-v0
+
+python3.9 -m federated_ppo.main \
+    --env-type=minigrid \
+    --gym-id=MiniGrid-DoorKey-6x6-v0 \
+    --exp-name=collaborative_penalty_comparison \
+    --setup-id=seed_3 \
+    --policy-aggregation-mode=average_return \
+    --n-agents=3 \
+    --total-timesteps=5000000 \
+    --local-updates=32 \
+    --seed=3 \
+    --objective-mode=3 \
+    --use-comm-penalty=True \
+    --comm-penalty-coeff=0.8 \
+    --capture-video=False \
+    --track=True \
+    --wandb-project-name=FedRL_DoorKey-6x6-v0
+
+python3.9 -m federated_ppo.main \
+    --env-type=minigrid \
+    --gym-id=MiniGrid-DoorKey-6x6-v0 \
+    --exp-name=collaborative_penalty_comparison \
+    --setup-id=seed_0 \
+    --policy-aggregation-mode=average_return \
+    --n-agents=3 \
+    --total-timesteps=5000000 \
+    --local-updates=32 \
+    --seed=0 \
+    --objective-mode=4 \
+    --use-comm-penalty=True \
+    --comm-penalty-coeff=0.4 \
+    --capture-video=False \
+    --track=True \
+    --wandb-project-name=FedRL_DoorKey-6x6-v0
+
+python3.9 -m federated_ppo.main \
+    --env-type=minigrid \
+    --gym-id=MiniGrid-DoorKey-6x6-v0 \
+    --exp-name=collaborative_penalty_comparison \
+    --setup-id=seed_3 \
+    --policy-aggregation-mode=average_return \
+    --n-agents=3 \
+    --total-timesteps=5000000 \
+    --local-updates=32 \
+    --seed=3 \
+    --objective-mode=4 \
+    --use-comm-penalty=True \
+    --comm-penalty-coeff=0.4 \
+    --capture-video=False \
+    --track=True \
+    --wandb-project-name=FedRL_DoorKey-6x6-v0

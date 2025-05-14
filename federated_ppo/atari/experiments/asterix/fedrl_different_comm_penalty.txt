@@ -1,24 +1,6 @@
 python3.9 -m federated_ppo.main \
     --env-type=atari \
-    --gym-id=BeamRiderNoFrameskip-v4 \
-    --exp-name=collaborative_penalty_comparison \
-    --setup-id=local_updates_32 \
-    --policy-aggregation-mode=average_return \
-    --n-agents=3 \
-    --total-timesteps=10000000 \
-    --local-updates=32 \
-    --seed=0 \
-    --objective-mode=3 \
-    --use-comm-penalty=True \
-    --comm-penalty-coeff=5.0 \
-    --learning-rate=2.5e-4 \
-    --capture-video=True \
-    --track=True \
-    --wandb-project-name=FedRL_BeamRiderNoFrameskip-v4
-
-python3.9 -m federated_ppo.main \
-    --env-type=atari \
-    --gym-id=BeamRiderNoFrameskip-v4 \
+    --gym-id=AsterixNoFrameskip-v4 \
     --exp-name=collaborative_penalty_comparison \
     --setup-id=local_updates_64 \
     --policy-aggregation-mode=average_return \
@@ -29,25 +11,40 @@ python3.9 -m federated_ppo.main \
     --objective-mode=3 \
     --use-comm-penalty=True \
     --comm-penalty-coeff=5.0 \
-    --learning-rate=2.5e-4 \
     --capture-video=True \
     --track=True \
-    --wandb-project-name=FedRL_BeamRiderNoFrameskip-v4
+    --wandb-project-name=FedRL_AsterixNoFrameskip-v4
 
 python3.9 -m federated_ppo.main \
     --env-type=atari \
-    --gym-id=BeamRiderNoFrameskip-v4 \
+    --gym-id=AsterixNoFrameskip-v4 \
     --exp-name=collaborative_penalty_comparison \
-    --setup-id=local_updates_128 \
+    --setup-id=local_updates_32 \
     --policy-aggregation-mode=average_return \
     --n-agents=3 \
     --total-timesteps=10000000 \
-    --local-updates=128 \
+    --local-updates=32 \
     --seed=0 \
     --objective-mode=3 \
     --use-comm-penalty=True \
     --comm-penalty-coeff=5.0 \
-    --learning-rate=2.5e-4 \
     --capture-video=True \
     --track=True \
-    --wandb-project-name=FedRL_BeamRiderNoFrameskip-v4
+    --wandb-project-name=FedRL_AsterixNoFrameskip-v4
+
+python3.9 -m federated_ppo.main \
+    --env-type=atari \
+    --gym-id=AsterixNoFrameskip-v4 \
+    --exp-name=collaborative_penalty_comparison \
+    --setup-id=local_updates_16 \
+    --policy-aggregation-mode=average_return \
+    --n-agents=3 \
+    --total-timesteps=10000000 \
+    --local-updates=16 \
+    --seed=0 \
+    --objective-mode=3 \
+    --use-comm-penalty=True \
+    --comm-penalty-coeff=5.0 \
+    --capture-video=True \
+    --track=True \
+    --wandb-project-name=FedRL_AsterixNoFrameskip-v4

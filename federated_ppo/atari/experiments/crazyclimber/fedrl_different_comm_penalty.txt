@@ -1,0 +1,71 @@
+python3.9 -m federated_ppo.main \
+    --env-type=atari \
+    --gym-id=ALE/CrazyClimber-v5 \
+    --exp-name=collaborative_penalty_comparison \
+    --setup-id=comm_penalty_2.0 \
+    --policy-aggregation-mode=average_return \
+    --n-agents=3 \
+    --total-timesteps=10000000 \
+    --local-updates=128 \
+    --seed=0 \
+    --objective-mode=3 \
+    --use-comm-penalty=True \
+    --comm-penalty-coeff=2.0 \
+    --learning-rate=1e-3 \
+    --capture-video=True \
+    --track=True \
+    --wandb-project-name=FedRL_ALE_CrazyClimber-v5
+
+python3.9 -m federated_ppo.main \
+    --env-type=atari \
+    --gym-id=ALE/CrazyClimber-v5 \
+    --exp-name=collaborative_penalty_comparison \
+    --setup-id=comm_penalty_5.0 \
+    --policy-aggregation-mode=average_return \
+    --n-agents=3 \
+    --total-timesteps=10000000 \
+    --local-updates=128 \
+    --seed=0 \
+    --objective-mode=3 \
+    --use-comm-penalty=True \
+    --comm-penalty-coeff=5.0 \
+    --learning-rate=1e-3 \
+    --capture-video=True \
+    --track=True \
+    --wandb-project-name=FedRL_ALE_CrazyClimber-v5
+
+python3.9 -m federated_ppo.main \
+    --env-type=atari \
+    --gym-id=ALE/CrazyClimber-v5 \
+    --exp-name=collaborative_penalty_comparison \
+    --setup-id=comm_penalty_10.0 \
+    --policy-aggregation-mode=average_return \
+    --n-agents=3 \
+    --total-timesteps=10000000 \
+    --local-updates=128 \
+    --seed=0 \
+    --objective-mode=3 \
+    --use-comm-penalty=True \
+    --comm-penalty-coeff=10.0 \
+    --learning-rate=1e-3 \
+    --capture-video=True \
+    --track=True \
+    --wandb-project-name=FedRL_ALE_CrazyClimber-v5
+
+python3.9 -m federated_ppo.main \
+    --env-type=atari \
+    --gym-id=ALE/CrazyClimber-v5 \
+    --exp-name=collaborative_penalty_comparison \
+    --setup-id=comm_penalty_20.0 \
+    --policy-aggregation-mode=average_return \
+    --n-agents=3 \
+    --total-timesteps=10000000 \
+    --local-updates=128 \
+    --seed=0 \
+    --objective-mode=3 \
+    --use-comm-penalty=True \
+    --comm-penalty-coeff=20.0 \
+    --learning-rate=1e-3 \
+    --capture-video=True \
+    --track=True \
+    --wandb-project-name=FedRL_ALE_CrazyClimber-v5

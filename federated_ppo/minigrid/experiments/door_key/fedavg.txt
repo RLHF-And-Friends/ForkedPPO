@@ -1,0 +1,39 @@
+python3.9 -m federated_ppo.main \
+    --env-type=minigrid \
+    --gym-id=MiniGrid-DoorKey-6x6-v0 \
+    --exp-name=fedavg_32_local_epochs \
+    --setup-id=penalty_coeff_0.8 \
+    --policy-aggregation-mode=average_return \
+    --n-agents=3 \
+    --total-timesteps=5000000 \
+    --local-updates=32 \
+    --seed=0 \
+    --objective-mode=3 \
+    --use-comm-penalty=false \
+    --penalty-coeff=0.8 \
+    --learning-rate=2.5e-4 \
+    --capture-video=false \
+    --track=True \
+    --wandb-project-name=FedRL_DoorKey-6x6-v0
+    --use-fedavg=True \
+    --fedavg-average-weights-mode=classic-avg
+
+python3.9 -m federated_ppo.main \
+    --env-type=minigrid \
+    --gym-id=MiniGrid-DoorKey-6x6-v0 \
+    --exp-name=fedavg_32_local_epochs \
+    --setup-id=penalty_coeff_0.4 \
+    --policy-aggregation-mode=average_return \
+    --n-agents=3 \
+    --total-timesteps=5000000 \
+    --local-updates=32 \
+    --seed=0 \
+    --objective-mode=4 \
+    --use-comm-penalty=false \
+    --penalty-coeff=0.4 \
+    --learning-rate=2.5e-4 \
+    --capture-video=false \
+    --track=True \
+    --wandb-project-name=FedRL_DoorKey-6x6-v0
+    --use-fedavg=True \
+    --fedavg-average-weights-mode=classic-avg

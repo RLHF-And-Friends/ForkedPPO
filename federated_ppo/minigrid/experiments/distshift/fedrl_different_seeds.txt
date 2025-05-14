@@ -1,0 +1,67 @@
+python3.9 -m federated_ppo.main \
+    --env-type=minigrid \
+    --gym-id=MiniGrid-DistShift2-v0 \
+    --exp-name=collaborative_penalty_comparison \
+    --setup-id=fedrl_ppo \
+    --policy-aggregation-mode=average_return \
+    --n-agents=3 \
+    --total-timesteps=5000000 \
+    --local-updates=32 \
+    --seed=1 \
+    --objective-mode=3 \
+    --use-comm-penalty=True \
+    --comm-penalty-coeff=0.8 \
+    --capture-video=False \
+    --track=True \
+    --wandb-project-name=FedRL_DistShift2-v0
+
+python3.9 -m federated_ppo.main \
+    --env-type=minigrid \
+    --gym-id=MiniGrid-DistShift2-v0 \
+    --exp-name=collaborative_penalty_comparison \
+    --setup-id=fedrl_ppo \
+    --policy-aggregation-mode=average_return \
+    --n-agents=3 \
+    --total-timesteps=5000000 \
+    --local-updates=32 \
+    --seed=2 \
+    --objective-mode=3 \
+    --use-comm-penalty=True \
+    --comm-penalty-coeff=0.8 \
+    --capture-video=False \
+    --track=True \
+    --wandb-project-name=FedRL_DistShift2-v0
+
+python3.9 -m federated_ppo.main \
+    --env-type=minigrid \
+    --gym-id=MiniGrid-DistShift2-v0 \
+    --exp-name=collaborative_penalty_comparison \
+    --setup-id=fedrl_mdpo \
+    --policy-aggregation-mode=average_return \
+    --n-agents=3 \
+    --total-timesteps=5000000 \
+    --local-updates=32 \
+    --seed=1 \
+    --objective-mode=4 \
+    --use-comm-penalty=True \
+    --comm-penalty-coeff=0.4 \
+    --capture-video=False \
+    --track=True \
+    --wandb-project-name=FedRL_DistShift2-v0
+
+python3.9 -m federated_ppo.main \
+    --env-type=minigrid \
+    --gym-id=MiniGrid-DistShift2-v0 \
+    --exp-name=collaborative_penalty_comparison \
+    --setup-id=fedrl_mdpo \
+    --policy-aggregation-mode=average_return \
+    --n-agents=3 \
+    --total-timesteps=5000000 \
+    --local-updates=32 \
+    --seed=2 \
+    --objective-mode=4 \
+    --use-comm-penalty=True \
+    --comm-penalty-coeff=0.4 \
+    --capture-video=False \
+    --track=True \
+    --wandb-project-name=FedRL_DistShift2-v0

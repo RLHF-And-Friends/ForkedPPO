@@ -1,0 +1,125 @@
+python3.9 -m federated_ppo.main \
+    --env-type=minigrid \
+    --gym-id=MiniGrid-SimpleCrossingS9N2-v0 \
+    --exp-name=baseline \
+    --setup-id=setup_ppo_baseline \
+    --policy-aggregation-mode=default \
+    --n-agents=1 \
+    --num-envs=4 \
+    --objective-mode=3 \
+    --use-comm-penalty=false \
+    --penalty-coeff=0.8 \
+    --local-updates=32 \
+    --seed=1 \
+    --learning-rate=0.00025 \
+    --total-timesteps=5000000 \
+    --vf-coef=0.001 \
+    --ent-coef=0.01 \
+    --capture-video=true \
+    --track=true \
+    --wandb-project-name=FedRL_SimpleCrossingS9N2-v0
+
+python3.9 -m federated_ppo.main \
+    --env-type=minigrid \
+    --gym-id=MiniGrid-SimpleCrossingS9N2-v0 \
+    --exp-name=baseline \
+    --setup-id=setup_ppo_baseline \
+    --policy-aggregation-mode=default \
+    --n-agents=1 \
+    --num-envs=4 \
+    --objective-mode=3 \
+    --use-comm-penalty=false \
+    --penalty-coeff=0.8 \
+    --local-updates=32 \
+    --seed=2 \
+    --learning-rate=0.00025 \
+    --total-timesteps=5000000 \
+    --vf-coef=0.001 \
+    --ent-coef=0.01 \
+    --capture-video=true \
+    --track=true \
+    --wandb-project-name=FedRL_SimpleCrossingS9N2-v0
+
+python3.9 -m federated_ppo.main \
+    --env-type=minigrid \
+    --gym-id=MiniGrid-SimpleCrossingS9N2-v0 \
+    --exp-name=baseline \
+    --setup-id=setup_ppo_baseline \
+    --policy-aggregation-mode=default \
+    --n-agents=1 \
+    --num-envs=4 \
+    --objective-mode=3 \
+    --use-comm-penalty=false \
+    --penalty-coeff=0.8 \
+    --local-updates=32 \
+    --seed=3 \
+    --learning-rate=0.00025 \
+    --total-timesteps=5000000 \
+    --vf-coef=0.001 \
+    --ent-coef=0.01 \
+    --capture-video=true \
+    --track=true \
+    --wandb-project-name=FedRL_SimpleCrossingS9N2-v0
+
+python3.9 -m federated_ppo.main \
+    --env-type=minigrid \
+    --gym-id=MiniGrid-SimpleCrossingS9N2-v0 \
+    --exp-name=baseline \
+    --setup-id=setup_mdpo_baseline \
+    --policy-aggregation-mode=default \
+    --n-agents=1 \
+    --num-envs=4 \
+    --objective-mode=4 \
+    --use-comm-penalty=false \
+    --penalty-coeff=0.4 \
+    --local-updates=32 \
+    --seed=1 \
+    --learning-rate=0.00025 \
+    --total-timesteps=5000000 \
+    --vf-coef=0.001 \
+    --ent-coef=0.01 \
+    --capture-video=true \
+    --track=true \
+    --wandb-project-name=FedRL_SimpleCrossingS9N2-v0
+
+python3.9 -m federated_ppo.main \
+    --env-type=minigrid \
+    --gym-id=MiniGrid-SimpleCrossingS9N2-v0 \
+    --exp-name=baseline \
+    --setup-id=setup_mdpo_baseline \
+    --policy-aggregation-mode=default \
+    --n-agents=1 \
+    --num-envs=4 \
+    --objective-mode=4 \
+    --use-comm-penalty=false \
+    --penalty-coeff=0.4 \
+    --local-updates=32 \
+    --seed=2 \
+    --learning-rate=0.00025 \
+    --total-timesteps=5000000 \
+    --vf-coef=0.001 \
+    --ent-coef=0.01 \
+    --capture-video=true \
+    --track=true \
+    --wandb-project-name=FedRL_SimpleCrossingS9N2-v0
+
+python3.9 -m federated_ppo.main \
+    --env-type=minigrid \
+    --gym-id=MiniGrid-SimpleCrossingS9N2-v0 \
+    --exp-name=baseline \
+    --setup-id=setup_mdpo_baseline \
+    --policy-aggregation-mode=default \
+    --n-agents=1 \
+    --num-envs=4 \
+    --objective-mode=4 \
+    --use-comm-penalty=false \
+    --penalty-coeff=0.4 \
+    --local-updates=32 \
+    --seed=3 \
+    --learning-rate=0.00025 \
+    --total-timesteps=5000000 \
+    --vf-coef=0.001 \
+    --ent-coef=0.01 \
+    --capture-video=true \
+    --track=true \
+    --wandb-project-name=FedRL_SimpleCrossingS9N2-v0
