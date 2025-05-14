@@ -1,0 +1,71 @@
+python3.9 -m federated_ppo.main \
+    --env-type=atari \
+    --gym-id=AmidarNoFrameskip-v4 \
+    --exp-name=penalty_coeff_comparison \
+    --setup-id=lr_5e-5 \
+    --policy-aggregation-mode=default \
+    --n-agents=1 \
+    --total-timesteps=10000000 \
+    --local-updates=16 \
+    --seed=0 \
+    --objective-mode=3 \
+    --use-comm-penalty=False \
+    --penalty-coeff=5.0 \
+    --learning-rate=5e-5 \
+    --capture-video=True \
+    --track=True \
+    --wandb-project-name=FedRL_AmidarNoFrameskip-v4
+
+python3.9 -m federated_ppo.main \
+    --env-type=atari \
+    --gym-id=AmidarNoFrameskip-v4 \
+    --exp-name=penalty_coeff_comparison \
+    --setup-id=lr_1e-4 \
+    --policy-aggregation-mode=default \
+    --n-agents=1 \
+    --total-timesteps=10000000 \
+    --local-updates=16 \
+    --seed=0 \
+    --objective-mode=3 \
+    --use-comm-penalty=False \
+    --penalty-coeff=5.0 \
+    --learning-rate=1e-4 \
+    --capture-video=True \
+    --track=True \
+    --wandb-project-name=FedRL_AmidarNoFrameskip-v4
+
+python3.9 -m federated_ppo.main \
+    --env-type=atari \
+    --gym-id=AmidarNoFrameskip-v4 \
+    --exp-name=penalty_coeff_comparison \
+    --setup-id=lr_5e-4 \
+    --policy-aggregation-mode=default \
+    --n-agents=1 \
+    --total-timesteps=10000000 \
+    --local-updates=16 \
+    --seed=0 \
+    --objective-mode=3 \
+    --use-comm-penalty=False \
+    --penalty-coeff=5.0 \
+    --learning-rate=5e-4 \
+    --capture-video=True \
+    --track=True \
+    --wandb-project-name=FedRL_AmidarNoFrameskip-v4
+
+python3.9 -m federated_ppo.main \
+    --env-type=atari \
+    --gym-id=AmidarNoFrameskip-v4 \
+    --exp-name=penalty_coeff_comparison \
+    --setup-id=lr_1e-3 \
+    --policy-aggregation-mode=default \
+    --n-agents=1 \
+    --total-timesteps=10000000 \
+    --local-updates=16 \
+    --seed=0 \
+    --objective-mode=3 \
+    --use-comm-penalty=False \
+    --penalty-coeff=5.0 \
+    --learning-rate=1e-3 \
+    --capture-video=True \
+    --track=True \
+    --wandb-project-name=FedRL_AmidarNoFrameskip-v4

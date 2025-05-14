@@ -1,157 +1,191 @@
-# The 37 Implementation Details of Proximal Policy Optimization
+# Federated RL
 
-This repo contains the source code for the blog post *The 37 Implementation Details of Proximal Policy Optimization*
+## Installation
 
-* Blog post url: https://iclr-blog-track.github.io/2022/03/25/ppo-implementation-details/
-* Tracked Weights and Biases experiments: https://wandb.ai/vwxyzjn/ppo-details
+Версия *Python*: 3.9
+Версия *gym*: 0.21.0
 
-If you like this repo, consider checking out CleanRL (https://github.com/vwxyzjn/cleanrl), the RL library that we used to build this repo.
+Репозиторий содержит код для федеративного обучения PPO в средах Atari и Minigrid. Чтобы запустить обучение, создайте виртуальное окружение для каждой из сред.
 
+### Minigrid
+С Minigrid всё простою
 
-## Custom installation
-
-1. Check [this toml](pyproject.toml) file for dependencies. Move all dependencies to [requirements.txt](requirements.txt) file.
-2. Extend [requirements.txt](requirements.txt) file with all dependencies from this stackoverflow [post](https://stackoverflow.com/questions/69442971/error-in-importing-environment-openai-gym):
-```
- gymnasium[atari, all]
- swig
- Box2D
- box2d-kengz
- pygame
- ale_py
- autorom
-```
-3. Install dependencies
-4. Patch gym\utils\seeding.py appropriately to this github [issue](https://github.com/ray-project/ray/issues/24133)
-
-
-## Get started
-
-Prerequisites:
-* Python 3.8+
-* [Poetry](https://python-poetry.org)
-
-Install dependencies:
-```
-poetry install
+1. Создаём виртуальное окружение:
+```sh
+python3.9 -m venv ppo_env_minigrid
+source ppo_env_minigrid/bin/activate
 ```
 
-Train agents:
-```
-poetry run python ppo.py
+2. Устанавливаем зависимости из [requirements.txt](federated_ppo/minigrid/requirements.txt):
+```sh
+pip install -r federated_ppo/minigrid/requirements.txt
 ```
 
-Train agents with experiment tracking:
+3. **UPD:** См. ридми [старого репозитория](https://github.com/RLHF-And-Friends/FedRL), нужно обновить импорты на gym и запатчить video_recorder.py (код [здесь](https://github.com/RLHF-And-Friends/FedRL/blob/3b0dd86f3615a5b15fc971ca3b9ddf36b418d6a6/patches/site-packages/wandb/integration/gym/__init__.py)):
+```python
+# ppo_env_minigrid/lib/python3.9/site-packages/wandb/integration/gym/__init__.py
+import re
+from typing import Optional
+
+import wandb
+
+_gym_version_lt_0_26: Optional[bool] = None
+
+
+def monitor():
+    vcr = wandb.util.get_module(
+        "gym.wrappers.monitoring.video_recorder",
+        required="Couldn't import the gym python package, install with `pip install gym`",
+    )
+
+    global _gym_version_lt_0_26
+
+    if _gym_version_lt_0_26 is None:
+        import gym  # type: ignore
+        from pkg_resources import parse_version
+
+        if parse_version(gym.__version__) < parse_version("0.26.0"):
+            _gym_version_lt_0_26 = True
+        else:
+            _gym_version_lt_0_26 = False
+
+    # breaking change in gym 0.26.0
+    vcr_recorder_attribute = "ImageEncoder" if _gym_version_lt_0_26 else "VideoRecorder"
+    recorder = getattr(vcr, vcr_recorder_attribute)
+    path = "output_path" if _gym_version_lt_0_26 else "path"
+
+    recorder.orig_close = recorder.close
+
+    def close(self):
+        recorder.orig_close(self)
+        m = re.match(r".+(video\.\d+).+", getattr(self, path))
+        if m:
+            key = m.group(1)
+        else:
+            key = "videos"
+        wandb.log({key: wandb.Video(getattr(self, path))})
+
+    def del_(self):
+        self.orig_close()
+
+    if not _gym_version_lt_0_26:
+        recorder.__del__ = del_
+    recorder.close = close
+    wandb.patched["gym"].append(
+        [
+            f"gym.wrappers.monitoring.video_recorder.{vcr_recorder_attribute}",
+            "close",
+        ]
+    )
 ```
-poetry run python ppo.py --track --capture-video
+
+Следующие пункты не актуальны (они нужны для gym==0.21.0):
+
+3. Патчим класс *ImageEncoder* в *gym/wrappers/monitoring/video_recorder.py*:
+```python
+# ppo_env_minigrid/lib/python3.9/site-packages/gym/wrappers/monitoring/video_recorder.py
+self.cmdline = (
+    self.backend,
+    "-nostats",
+    "-loglevel",
+    "error",  # suppress warnings
+    "-y",
+    # input
+    "-f",
+    "rawvideo",
+    "-s:v",
+    "{}x{}".format(*self.wh),
+    "-pix_fmt",
+    ("rgb32" if self.includes_alpha else "rgb24"),
+    "-framerate",
+    "%d" % self.frames_per_sec,
+    "-i",
+    "-",  # this used to be /dev/stdin, which is not Windows-friendly
+    # output
+    "-vf",
+    "scale=trunc(iw/2)*2:trunc(ih/2)*2",
+    "-vcodec",
+    "libx264",
+    "-pix_fmt",
+    "yuv420p",
+    "-movflags",
+    "+faststart",
+    "-profile:v",
+    "baseline",
+    "-level",
+    "3.0",
+    "-r",
+    "%d" % self.output_frames_per_sec,
+    self.output_path,
+)
 ```
+
+4. Патчим класс *RecordVideo* в *gym/wrappers/record_video.py*:
+```python
+        ...
+        self.episode_id = 0
+        self.last_video_path = None
+```
+
+```python
+        ...
+        base_path = os.path.join(self.video_folder, video_name)
+        self.last_video_path = base_path + ".mp4"  # Запоминаем путь к будущему видео
+```
+
+```python
+    def close_video_recorder(self) -> None:
+        if self.recording:
+            self.video_recorder.close()
+            # Добавляем запись видео в wandb после закрытия рекордера
+            if self.last_video_path and os.path.exists(self.last_video_path):
+                try:
+                    print(f"Uploading video to wandb: {self.last_video_path}")
+                    # Проверяем, что wandb инициализирован и доступен
+                    if wandb.run is not None:
+                        # Добавляем видео в wandb
+                        wandb.log({
+                            "videos": wandb.Video(
+                                self.last_video_path, 
+                                fps=30, 
+                                format="mp4"
+                            )
+                        })
+                        print(f"Successfully uploaded video to wandb: {self.last_video_path}")
+                except Exception as e:
+                    print(f"Failed to upload video to wandb: {e}")
+        
+        self.recording = False
+        self.recorded_frames = 1
+```
+
+**Note:** без этих двух патчей видео не будет загружаться в wandb, даже при проставленном флаге `monitor_gym=True` и даже если логгировать видео вручную через `wandb.log(...)`. Вдохновлено этим [issue на GitHub](https://github.com/wandb/wandb/issues/2143).
 
 ### Atari
-Install dependencies:
+Для Atari потребуется повозиться с установкой (вдохновлено тредом на [Stackoverflow](https://stackoverflow.com/questions/69442971/error-in-importing-environment-openai-gym)):
+
+1. Создаём виртуальное окружение:
+```sh
+python3.9 -m venv ppo_env_atari
+source ppo_env_atari/bin/activate
 ```
-poetry install -E atari
-```
-Train agents:
-```
-poetry run python ppo_atari.py
-```
-Train agents with experiment tracking:
-```
-poetry run python ppo_atari.py --track --capture-video
+2. Устанавливаем зависимости:
+```sh
+pip3.9 install gym==0.21.0
+pip3.9 install tensorboard==2.5.0
+pip3.9 install stable-baselines3==1.1.0
+pip3.9 install numpy==1.22.4
+pip3.9 install matplotlib==3.7.4
+pip3.9 install gym[atari]==0.21.0
+pip3.9 install swig==4.3.0
+pip3.9 install Box2D==2.3.10
+pip3.9 install box2d-kengz==2.3.3
+pip3.9 install pygame==2.6.1
+pip3.9 install ale_py==0.7.5
+pip3.9 install autorom==0.6.1
+pip3.9 install wandb==0.12.1
+pip3.9 install imageio-ffmpeg==0.6.0
 ```
 
+3. Запатчить *gym\utils\seeding.py* в соответствии с этим [issue на GitHub](https://github.com/ray-project/ray/issues/24133):
 
-### Pybullet
-Install dependencies:
-```
-poetry install -E pybullet
-```
-Train agents:
-```
-poetry run python ppo_continuous_action.py
-```
-Train agents with experiment tracking:
-```
-poetry run python ppo_continuous_action.py --track --capture-video
-```
-
-
-### Gym-microrts (MultiDiscrete)
-
-Install dependencies:
-```
-poetry install -E gym-microrts
-```
-Train agents:
-```
-poetry run python ppo_multidiscrete.py
-```
-Train agents with experiment tracking:
-```
-poetry run python ppo_multidiscrete.py --track --capture-video
-```
-Train agents with invalid action masking:
-```
-poetry run python ppo_multidiscrete_mask.py
-```
-Train agents with invalid action masking and experiment tracking:
-```
-poetry run python ppo_multidiscrete_mask.py --track --capture-video
-```
-
-### Atari with Envpool
-
-Install dependencies:
-```
-poetry install -E envpool
-```
-Train agents:
-```
-poetry run python ppo_atari_envpool.py
-```
-Train agents with experiment tracking:
-```
-poetry run python ppo_atari_envpool.py --track
-```
-Solve `Pong-v5` in 5 mins:
-```
-poetry run python ppo_atari_envpool.py --clip-coef=0.2 --num-envs=16 --num-minibatches=8 --num-steps=128 --update-epochs=3
-```
-400 game scores in `Breakout-v5` with PPO in ~1 hour (side-effects-free 3-4x speed up compared to `ppo_atari.py` with `SyncVectorEnv`):
-```
-poetry run python ppo_atari_envpool.py --gym-id Breakout-v5
-```
-
-
-### Procgen
-
-Install dependencies:
-```
-poetry install -E procgen
-```
-Train agents:
-```
-poetry run python ppo_procgen.py
-```
-Train agents with experiment tracking:
-```
-poetry run python ppo_procgen.py --track
-```
-
-## Reproduction of all of our results
-
-To reproduce the results run with `openai/baselines`, install our fork at [hhttps://github.com/vwxyzjn/baselines](hhttps://github.com/vwxyzjn/baselines). Then follow the scripts in `scripts/baselines`. To reproduce our results, follow the scripts in `scripts/ours`.
-
-
-## Citation
-
-```bibtex
-@inproceedings{shengyi2022the37implementation,
-  author = {Huang, Shengyi and Dossa, Rousslan Fernand Julien and Raffin, Antonin and Kanervisto, Anssi and Wang, Weixun},
-  title = {The 37 Implementation Details of Proximal Policy Optimization},
-  booktitle = {ICLR Blog Track},
-  year = {2022},
-  note = {https://iclr-blog-track.github.io/2022/03/25/ppo-implementation-details/},
-  url  = {https://iclr-blog-track.github.io/2022/03/25/ppo-implementation-details/}
-}
-```

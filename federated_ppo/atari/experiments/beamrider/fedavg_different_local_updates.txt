@@ -1,0 +1,79 @@
+python3.9 -m federated_ppo.main \
+    --env-type=atari \
+    --gym-id=BeamRiderNoFrameskip-v4 \
+    --exp-name=fedavg_16_local_epochs \
+    --setup-id=comm_penalty_5_0 \
+    --policy-aggregation-mode=average_return \
+    --n-agents=3 \
+    --total-timesteps=10000000 \
+    --local-updates=16 \
+    --seed=0 \
+    --objective-mode=3 \
+    --use-comm-penalty=false \
+    --penalty-coeff=20.0 \
+    --learning-rate=2.5e-4 \
+    --capture-video=True \
+    --track=True \
+    --wandb-project-name=FedRL_BeamRiderNoFrameskip-v4 \
+    --use-fedavg=True \
+    --fedavg-average-weights-mode=classic-avg
+
+python3.9 -m federated_ppo.main \
+    --env-type=atari \
+    --gym-id=BeamRiderNoFrameskip-v4 \
+    --exp-name=fedavg_32_local_epochs \
+    --setup-id=comm_penalty_5_0 \
+    --policy-aggregation-mode=average_return \
+    --n-agents=3 \
+    --total-timesteps=10000000 \
+    --local-updates=32 \
+    --seed=0 \
+    --objective-mode=3 \
+    --use-comm-penalty=false \
+    --penalty-coeff=20.0 \
+    --learning-rate=2.5e-4 \
+    --capture-video=True \
+    --track=True \
+    --wandb-project-name=FedRL_BeamRiderNoFrameskip-v4 \
+    --use-fedavg=True \
+    --fedavg-average-weights-mode=classic-avg
+
+python3.9 -m federated_ppo.main \
+    --env-type=atari \
+    --gym-id=BeamRiderNoFrameskip-v4 \
+    --exp-name=fedavg_64_local_epochs \
+    --setup-id=comm_penalty_5_0 \
+    --policy-aggregation-mode=average_return \
+    --n-agents=3 \
+    --total-timesteps=10000000 \
+    --local-updates=64 \
+    --seed=0 \
+    --objective-mode=3 \
+    --use-comm-penalty=false \
+    --penalty-coeff=20.0 \
+    --learning-rate=2.5e-4 \
+    --capture-video=True \
+    --track=True \
+    --wandb-project-name=FedRL_BeamRiderNoFrameskip-v4 \
+    --use-fedavg=True \
+    --fedavg-average-weights-mode=classic-avg
+
+python3.9 -m federated_ppo.main \
+    --env-type=atari \
+    --gym-id=BeamRiderNoFrameskip-v4 \
+    --exp-name=fedavg_128_local_epochs \
+    --setup-id=comm_penalty_5_0 \
+    --policy-aggregation-mode=average_return \
+    --n-agents=3 \
+    --total-timesteps=10000000 \
+    --local-updates=128 \
+    --seed=0 \
+    --objective-mode=3 \
+    --use-comm-penalty=false \
+    --penalty-coeff=20.0 \
+    --learning-rate=2.5e-4 \
+    --capture-video=True \
+    --track=True \
+    --wandb-project-name=FedRL_BeamRiderNoFrameskip-v4 \
+    --use-fedavg=True \
+    --fedavg-average-weights-mode=classic-avg

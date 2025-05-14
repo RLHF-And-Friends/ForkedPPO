@@ -3,3 +3,9 @@ ppo_env/
 *.ipynb
 *.out
 wandb/
+*.pyc
+legacy_fedrl/
+*.log
+*videos/
+ppo_env_minigrid/
+ppo_env_atari/
