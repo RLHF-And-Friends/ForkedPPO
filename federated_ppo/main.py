@@ -299,6 +299,19 @@ def main() -> None:
     args.videos_dir = os.path.join(ROOT_DIR, f"federated_ppo/{args.env_type}/videos")
     args.runs_dir = os.path.join(ROOT_DIR, f"federated_ppo/{args.env_type}/runs")
 
+    args.mode = ""
+    if args.use_fedavg:
+        args.mode = "FedAvg"
+    elif args.use_comm_penalty:
+        args.mode = "PR"
+    else:
+        args.mode = "baseline"
+    
+    if args.objective_mode == 3:
+        args.mode += "-PPO"
+    elif args.objective_mode == 4:
+        args.mode += "-MDPO"
+
     os.makedirs(args.wandb_dir, exist_ok=True)
     os.makedirs(args.videos_dir, exist_ok=True)
     
