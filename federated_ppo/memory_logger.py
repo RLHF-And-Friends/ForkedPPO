@@ -4,71 +4,71 @@ from federated_ppo.utils import safe_wandb_log
 
 class MemoryLogger:
     """
-    Класс для логирования информации о памяти, используемой при обмене параметрами между агентами.
-    Отслеживает параметры нейронной сети и таблицы политики, их размеры и обмен данными.
+    Class for logging memory information used when exchanging parameters between agents.
+    Tracks neural network parameters and policy table parameters, their sizes and data exchange.
     """
-    
+
     def __init__(self, agent_idx, args, writer, track=False):
         """
-        Инициализация логгера памяти
-        
+        Initialize memory logger
+
         Args:
-            agent_idx: индекс агента
-            args: аргументы запуска
-            writer: SummaryWriter для TensorBoard
-            track: флаг для логгирования в wandb
+            agent_idx: agent index
+            args: run arguments
+            writer: SummaryWriter for TensorBoard
+            track: flag for wandb logging
         """
         self.agent_idx = agent_idx
         self.args = args
         self.writer = writer
         self.track = track
-        
-        # Настраиваем логгер
+
+        # Set up logger
         self.logger = logging.getLogger(f"federated_ppo.memory_logger.agent_{self.agent_idx}")
-        
-        # Счетчики переданных/полученных параметров нейронной сети
+
+        # Counters for passed/received neural network parameters
         self.total_passed_nn_parameters = 0
         self.total_received_nn_parameters = 0
         self.total_exchanged_nn_parameters = 0
-        
-        # Счетчики для размеров данных в мегабайтах
+
+        # Counters for data sizes in megabytes
         self.total_received_fp16_mb = 0
         self.total_passed_fp16_mb = 0
         self.total_exchanged_fp16_mb = 0
-        
+
         self.total_received_fp32_mb = 0
         self.total_passed_fp32_mb = 0
         self.total_exchanged_fp32_mb = 0
-        
+
         self.total_received_fp64_mb = 0
         self.total_passed_fp64_mb = 0
         self.total_exchanged_fp64_mb = 0
-        
-        # Счетчики переданных/полученных параметров таблицы политики
+
+        # Counters for passed/received policy table parameters
         self.total_passed_policy_table_parameters = 0
         self.total_received_policy_table_parameters = 0
         self.total_exchanged_policy_table_parameters = 0
-        
-        # Инициализация начальных значений в логах
+
+        # Initialize initial log values
         self.log_initial_memory_info()
-    
+
     def log_initial_memory_info(self):
         """
-        Логирует исходную информацию о размерах нейронной сети и таблицы политики
+        Logs initial information about neural network and policy table sizes
         """
         args = self.args
-                
-        # Логирование в wandb для нейронной сети
+
+        # Log to wandb for neural network
         if self.track:
             safe_wandb_log({
                 f"exchanged_data_stats/nn_parameters/total_received_fp16_mb/agent_{self.agent_idx}": 0,
                 f"exchanged_data_stats/nn_parameters/total_passed_fp16_mb/agent_{self.agent_idx}": 0,
                 f"exchanged_data_stats/nn_parameters/total_exchanged_fp16_mb/agent_{self.agent_idx}": 0,
-                
+
                 f"exchanged_data_stats/nn_parameters/total_received_fp32_mb/agent_{self.agent_idx}": 0,
                 f"exchanged_data_stats/nn_parameters/total_passed_fp32_mb/agent_{self.agent_idx}": 0,
                 f"exchanged_data_stats/nn_parameters/total_exchanged_fp32_mb/agent_{self.agent_idx}": 0,
-                
+
                 f"exchanged_data_stats/nn_parameters/total_received_fp64_mb/agent_{self.agent_idx}": 0,
                 f"exchanged_data_stats/nn_parameters/total_passed_fp64_mb/agent_{self.agent_idx}": 0,
                 f"exchanged_data_stats/nn_parameters/total_exchanged_fp64_mb/agent_{self.agent_idx}": 0,
@@ -98,70 +98,70 @@ class MemoryLogger:
                 "global_communications": 0,
                 "global_step": 0
             })
-    
+
     def increase_exchanged_nn_parameters(self, number_of_communications, global_step, last_average_episodic_return_between_communications):
         """
-        Обновляет счетчики обмена параметрами нейронной сети и логирует информацию
-        
+        Updates neural network parameter exchange counters and logs information
+
         Args:
-            number_of_communications: номер текущей глобальной коммуникации
-            global_step: текущий глобальный шаг
+            number_of_communications: current global communication number
+            global_step: current global step
         """
         args = self.args
-        
-        # Обновляем общие счетчики параметров
+
+        # Update total parameter counters
         self.total_received_nn_parameters += args.nn_total_params_received_per_global_communication
         self.total_passed_nn_parameters += args.nn_total_params_passed_per_global_communication
         self.total_exchanged_nn_parameters = self.total_received_nn_parameters + self.total_passed_nn_parameters
-        
-        fp16_size_mb = 2 / (1024 * 1024)  # 2 байта -> мегабайты
-        fp32_size_mb = 4 / (1024 * 1024)  # 4 байта -> мегабайты
-        fp64_size_mb = 8 / (1024 * 1024)  # 8 байт -> мегабайты
-        
+
+        fp16_size_mb = 2 / (1024 * 1024)  # 2 bytes -> megabytes
+        fp32_size_mb = 4 / (1024 * 1024)  # 4 bytes -> megabytes
+        fp64_size_mb = 8 / (1024 * 1024)  # 8 bytes -> megabytes
+
         received_fp16_mb = args.nn_total_params_received_per_global_communication * fp16_size_mb
         passed_fp16_mb = args.nn_total_params_passed_per_global_communication * fp16_size_mb
         self.total_received_fp16_mb += received_fp16_mb
         self.total_passed_fp16_mb += passed_fp16_mb
         self.total_exchanged_fp16_mb = self.total_received_fp16_mb + self.total_passed_fp16_mb
-        
+
         received_fp32_mb = args.nn_total_params_received_per_global_communication * fp32_size_mb
         passed_fp32_mb = args.nn_total_params_passed_per_global_communication * fp32_size_mb
         self.total_received_fp32_mb += received_fp32_mb
         self.total_passed_fp32_mb += passed_fp32_mb
         self.total_exchanged_fp32_mb = self.total_received_fp32_mb + self.total_passed_fp32_mb
-        
+
         received_fp64_mb = args.nn_total_params_received_per_global_communication * fp64_size_mb
         passed_fp64_mb = args.nn_total_params_passed_per_global_communication * fp64_size_mb
         self.total_received_fp64_mb += received_fp64_mb
         self.total_passed_fp64_mb += passed_fp64_mb
         self.total_exchanged_fp64_mb = self.total_received_fp64_mb + self.total_passed_fp64_mb
-                                      
-        # Логирование в wandb
+
+        # Log to wandb
         if self.track:
             safe_wandb_log({
-                # Логирование общего количества параметров
+                # Log total parameter counts
                 f"exchanged_data_stats/nn_parameters/total_received/agent_{self.agent_idx}": self.total_received_nn_parameters,
                 f"exchanged_data_stats/nn_parameters/total_passed/agent_{self.agent_idx}": self.total_passed_nn_parameters,
                 f"exchanged_data_stats/nn_parameters/total_exchanged/agent_{self.agent_idx}": self.total_exchanged_nn_parameters,
-                
-                # Логирование размеров в мегабайтах для текущей коммуникации
+
+                # Log sizes in megabytes for current communication
                 f"exchanged_data_stats/nn_parameters/exchanged_fp16_mb/agent_{self.agent_idx}": args.nn_total_params_exchanged_per_global_communication * fp16_size_mb * (number_of_communications + 1),
                 f"exchanged_data_stats/nn_parameters/exchanged_fp32_mb/agent_{self.agent_idx}": args.nn_total_params_exchanged_per_global_communication * fp32_size_mb * (number_of_communications + 1),
                 f"exchanged_data_stats/nn_parameters/exchanged_fp64_mb/agent_{self.agent_idx}": args.nn_total_params_exchanged_per_global_communication * fp64_size_mb * (number_of_communications + 1),
-                
-                # Логирование накопленных размеров в мегабайтах
+
+                # Log accumulated sizes in megabytes
                 f"exchanged_data_stats/nn_parameters/total_received_fp16_mb/agent_{self.agent_idx}": self.total_received_fp16_mb,
                 f"exchanged_data_stats/nn_parameters/total_passed_fp16_mb/agent_{self.agent_idx}": self.total_passed_fp16_mb,
                 f"exchanged_data_stats/nn_parameters/total_exchanged_fp16_mb/agent_{self.agent_idx}": self.total_exchanged_fp16_mb,
-                
+
                 f"exchanged_data_stats/nn_parameters/total_received_fp32_mb/agent_{self.agent_idx}": self.total_received_fp32_mb,
                 f"exchanged_data_stats/nn_parameters/total_passed_fp32_mb/agent_{self.agent_idx}": self.total_passed_fp32_mb,
                 f"exchanged_data_stats/nn_parameters/total_exchanged_fp32_mb/agent_{self.agent_idx}": self.total_exchanged_fp32_mb,
-                
+
                 f"exchanged_data_stats/nn_parameters/total_received_fp64_mb/agent_{self.agent_idx}": self.total_received_fp64_mb,
                 f"exchanged_data_stats/nn_parameters/total_passed_fp64_mb/agent_{self.agent_idx}": self.total_passed_fp64_mb,
                 f"exchanged_data_stats/nn_parameters/total_exchanged_fp64_mb/agent_{self.agent_idx}": self.total_exchanged_fp64_mb,
-                
+
                 f"average_episodic_return/agent_{self.agent_idx}": last_average_episodic_return_between_communications,
 
                 f"exchanged_data_stats/nn_parameters/total_received": self.total_received_nn_parameters,
@@ -183,30 +183,30 @@ class MemoryLogger:
                 "global_communications": number_of_communications,
                 "global_step": global_step,
             })
-    
+
     def increase_exchanged_policy_table_parameters(self, number_of_communications, global_step, last_average_episodic_return_between_communications):
         """
-        Обновляет счетчики обмена параметрами таблицы политики и логирует информацию
-        
+        Updates policy table parameter exchange counters and logs information
+
         Args:
-            number_of_communications: номер текущей глобальной коммуникации
-            global_step: текущий глобальный шаг
+            number_of_communications: current global communication number
+            global_step: current global step
         """
         args = self.args
-        
+
         self.total_received_policy_table_parameters += args.policy_table_total_params_received_per_global_communication
         self.total_passed_policy_table_parameters += args.policy_table_total_params_passed_per_global_communication
         self.total_exchanged_policy_table_parameters = self.total_received_policy_table_parameters + self.total_passed_policy_table_parameters
-        
+
         # Note: no logs to wandb, it is too large for current environments
         pass
 
     def log_memory_comparison(self, number_of_communications, global_step):
         """
-        Логирует сравнительные метрики использования памяти между таблицей политики и нейронной сетью
-        
+        Logs comparative memory usage metrics between the policy table and neural network
+
         Args:
-            number_of_communications: номер текущей глобальной коммуникации
-            global_step: текущий глобальный шаг
+            number_of_communications: current global communication number
+            global_step: current global step
         """
         pass

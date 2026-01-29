@@ -23,10 +23,10 @@ class FederatedEnvironment():
         self.comm_matrix = None
         self.neighbors = None
         self.args = args
-        
-        # Используем дочерний логгер от корневого логгера проекта
+
+        # Use a child logger from the project root logger
         self.logger = logging.getLogger(f"federated_ppo.agent_{self.agent_idx}")
-        
+
         # ALGO Logic: Storage setup
         self.obs = torch.zeros((args.num_steps, args.num_envs) + envs.single_observation_space.shape, device=device)
         self.actions = torch.zeros((args.num_steps, args.num_envs) + envs.single_action_space.shape, device=device)
@@ -55,7 +55,7 @@ class FederatedEnvironment():
         self.episodic_returns = {}
         self.last_average_episodic_return_between_communications = 0
 
-        # Создаем логгер памяти
+        # Create memory logger
         self.memory_logger = MemoryLogger(agent_idx, args, self.writer, args.track)
 
     def _create_agent_without_gradients(self, agent):
@@ -107,11 +107,11 @@ class FederatedEnvironment():
                 # TRY NOT TO MODIFY: execute the game and log data.
                 result = self.envs.step(action.cpu().numpy())
                 if len(result) == 5:
-                    # Новый формат возврата в Gym (observation, reward, terminated, truncated, info)
+                    # New Gym return format (observation, reward, terminated, truncated, info)
                     next_obs, reward, terminated, truncated, info = result
                     done = np.logical_or(terminated, truncated)
                 else:
-                    # Старый формат возврата в Gym (observation, reward, done, info)
+                    # Old Gym return format (observation, reward, done, info)
                     next_obs, reward, done, info = result
 
                 self.rewards[step] = torch.tensor(reward, device=self.device).view(-1)
@@ -126,7 +126,7 @@ class FederatedEnvironment():
                                 if "episode" in item.keys():
                                     r, l = item["episode"]["r"], item["episode"]["l"]
                                     self.logger.info(f"New gym interface. global_step={self.num_steps}, episodic_return={r}")
-                                    
+
                                     if self.args.track:
                                         safe_wandb_log({
                                             f"charts/episodic_return/agent_{self.agent_idx}": r,
@@ -139,14 +139,14 @@ class FederatedEnvironment():
 
                                     if number_of_communications not in self.episodic_returns:
                                         self.episodic_returns[number_of_communications] = []
-                                    
+
                                     self.episodic_returns[number_of_communications].append(r)
                 else:
-                    # Обработка для старого интерфейса Gym
+                    # Handling for old Gym interface
                     for item in info:
                         if "episode" in item.keys():
                             self.logger.info(f"Old gym interface. global_step={self.num_steps}, episodic_return={item['episode']['r']}")
-                            
+
                             if self.args.track:
                                 safe_wandb_log({
                                     f"charts/episodic_return/agent_{self.agent_idx}": item["episode"]["r"],
@@ -159,7 +159,7 @@ class FederatedEnvironment():
 
                             if number_of_communications not in self.episodic_returns:
                                 self.episodic_returns[number_of_communications] = []
-                            
+
                             self.episodic_returns[number_of_communications].append(item["episode"]["r"])
                             break
 
@@ -202,7 +202,7 @@ class FederatedEnvironment():
             if FederatedEnvironment.log_dimensions:
                 FederatedEnvironment.log_dimensions = False
 
-                self.logger.debug(f"Размерности тензоров:")
+                self.logger.debug(f"Tensor dimensions:")
                 self.logger.debug(f"  single_observation_space: {self.envs.single_observation_space.shape}")
                 self.logger.debug(f"  b_obs: {b_obs.shape}")
                 self.logger.debug(f"  b_logprobs: {b_logprobs.shape}")
@@ -317,7 +317,7 @@ class FederatedEnvironment():
                                 _, neighbor_b_logprobs, _, _ = neighbor_agent.get_action_and_value(b_obs[mb_inds], b_actions.long()[mb_inds])
 
                                 kl_div_with_neighbor = compute_kl_divergence(q_logprob=current_b_logprobs, p_logprob=neighbor_b_logprobs)
-                                
+
                                 if self.args.track:
                                     safe_wandb_log({
                                         f"charts/kl/agent_{self.agent_idx}/neighbor_{neighbor_agent_idx}": kl_div_with_neighbor,
@@ -325,7 +325,7 @@ class FederatedEnvironment():
                                     })
                                 else:
                                     self.writer.add_scalar(f"charts/kl/agent_{self.agent_idx}/neighbor_{neighbor_agent_idx}", kl_div_with_neighbor, self.num_steps)
-                                
+
                                 sum_kl_penalty += comm_coeff * kl_div_with_neighbor
                                 weighted_neighbor_b_logprobs += comm_coeff * neighbor_b_logprobs
 
@@ -339,7 +339,7 @@ class FederatedEnvironment():
                             else:
                                 # ppo
                                 kl_div_weighted = compute_kl_divergence(weighted_neighbor_b_logprobs, current_b_logprobs)
-                            
+
                             if self.args.track:
                                 safe_wandb_log({
                                     f"charts/sum_kl/agent_{self.agent_idx}": sum_kl_penalty,
@@ -374,7 +374,7 @@ class FederatedEnvironment():
             if self.args.track:
                 loss_fractions_log = {
                     f"charts/loss_fractions/pg_loss/agent_{self.agent_idx}": abs(pg_loss / abs_loss),
-                }                
+                }
                 loss_fractions_log[f"charts/loss_fractions/entropy_loss/agent_{self.agent_idx}"] = abs(entropy_loss * args.ent_coef / abs_loss)
                 loss_fractions_log[f"charts/loss_fractions/value_loss/agent_{self.agent_idx}"] = abs(v_loss * args.vf_coef / abs_loss)
                 loss_fractions_log["global_step"] = self.num_steps
@@ -383,7 +383,7 @@ class FederatedEnvironment():
 
                 safe_wandb_log(loss_fractions_log)
             else:
-                # Стандартное логгирование через TensorBoard
+                # Standard logging via TensorBoard
                 self.writer.add_scalar(f"charts/loss_fractions/pg_loss/agent_{self.agent_idx}", abs(pg_loss / abs_loss), self.num_steps)
                 self.writer.add_scalar(f"charts/loss_fractions/entropy_loss/agent_{self.agent_idx}", abs(entropy_loss * args.ent_coef / abs_loss), self.num_steps)
                 self.writer.add_scalar(f"charts/loss_fractions/value_loss/agent_{self.agent_idx}", abs(v_loss * args.vf_coef / abs_loss), self.num_steps)
@@ -442,4 +442,4 @@ class FederatedEnvironment():
 
     def close(self):
         self.envs.close()
-        self.writer.close() 
+        self.writer.close()

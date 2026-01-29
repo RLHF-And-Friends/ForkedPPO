@@ -1,35 +1,35 @@
-Мы провели серию экспериментов в дискретных средах Minigrid и Atari, которые подтверждают генерализуемость предложенного нами алгоритма PR-PPO. Результаты показали, что коллаборативный подход в обучении систем, состоящих из нескольких агентов, позволяет ускорять процесс обучения агентов в отдельной среде и, более того, выходить на более высокий reward. Мы также показали, что предложенный нами подход PR-PPO коллаборативного обучения агентов позволяет им учиться быстрее и выходить на более высокий reward по сравнению с алгоритмом FedAvg, суть которого заключается в том, что веса агентов усредняются во время глобальных коммуникаций. Более того, помимо уже ставшего классикой алгоритма обновления политик PPO мы также провели эксперименты по обучению агентов с использованием алгоритма MDPO, как в коллаборативном сетапе PR-MDPO, так и в изолированном, когда агент обучается в одиночку без коммуникаций.
-## 1. Описание экспериментов
-Ключевыми гиперпараметрами в обучении агентов являются следующие:
--	общее число шагов, которые сделает агент в среде (total_timesteps)
--	шаг обучения (learning_rate)
+We conducted a series of experiments in discrete Minigrid and Atari environments that confirm the generalizability of our proposed PR-PPO algorithm. The results showed that a collaborative approach to training systems consisting of multiple agents accelerates the training process for agents in individual environments and, moreover, achieves higher rewards. We also demonstrated that our proposed PR-PPO collaborative training approach enables agents to learn faster and achieve higher rewards compared to the FedAvg algorithm, which averages agent weights during global communications. Furthermore, in addition to the already classic PPO policy update algorithm, we also conducted experiments training agents using the MDPO algorithm, both in a collaborative setup (PR-MDPO) and in an isolated setup where an agent trains alone without communications.
+## 1. Experiment Description
+The key hyperparameters in agent training are the following:
+-	total number of steps an agent takes in the environment (total_timesteps)
+-	learning rate (learning_rate)
 
-    **Note.** Этот шаг anneal'ится
+    **Note.** This rate is annealed
 
--	коэффициент перед KL-термом в objective-лоссе PPO и MDPO (penalty_coeff)
--	дисконтирующий фактор (gamma)
+-	coefficient for the KL term in the PPO and MDPO objective loss (penalty_coeff)
+-	discount factor (gamma)
 -	the lambda for the general advantage estimation (gae_lambda)
--	коэффициент перед value function (vf_coef)
--	коэффициент перед слагаемым энтропии (ent_coef)
--	число параллельных сред, в которых каждый агент обучается (num_envs)
--	число шагов, которые агент проделывает в каждой из своих сред для получения policy rollout (num_steps)
+-	coefficient for the value function (vf_coef)
+-	coefficient for the entropy term (ent_coef)
+-	number of parallel environments in which each agent trains (num_envs)
+-	number of steps an agent takes in each of its environments to obtain a policy rollout (num_steps)
 
-    **Note 1.** Размер батча для обновления политики равен batch_size = num_steps * num_envs
+    **Note 1.** The batch size for policy updates equals batch_size = num_steps * num_envs
 
-    **Note 2.** Общее число таких обновлений равно num_updates = total_timesteps // batch_size
+    **Note 2.** The total number of such updates equals num_updates = total_timesteps // batch_size
 
--	число коммуницирующих агентов (n_agents)
+-	number of communicating agents (n_agents)
 
-    **Note.** n_agents=1 означает изолированный сетап, n_agents>1 – коллаборативный
+    **Note.** n_agents=1 means an isolated setup, n_agents>1 means a collaborative setup
 
--	число локальных эпох между глобальными коммуникациями (local_updates)
--	коэффициент перед KL-термом в objective-лоссе PR-PPO и PR-MDPO (comm_penalty_coeff)
+-	number of local epochs between global communications (local_updates)
+-	coefficient for the KL term in the PR-PPO and PR-MDPO objective loss (comm_penalty_coeff)
 
-Мы произвели сотни запусков с перебором следующих гиперпараметров: total_timesteps, learning_rate,  penalty_coeff, vf_coef, ent_coef, num_envs, num_steps, n_agents, local_updates, comm_penalty_coeff. Для сравнения различных алгоритмов обучения агентов мы выбрали наиболее успешные конфигурации запусков как в коллаборативном, так и в изолированном подходе и усреднили их по нескольким сидам.
+We performed hundreds of runs sweeping the following hyperparameters: total_timesteps, learning_rate, penalty_coeff, vf_coef, ent_coef, num_envs, num_steps, n_agents, local_updates, comm_penalty_coeff. To compare different agent training algorithms, we selected the most successful run configurations in both collaborative and isolated approaches and averaged them across multiple seeds.
 
-В коллаборативных сетапах ниже рассматриваются системы из трёх агентов. Веса в матрице коммуникаций в предложенных нами алгоритмах PR-PPO и PR-MDPO обновляются во время очередной глобальной коммуникации пропорционально среднему реворду отдельного агента с момента последней глобальной коммуникации.
+In the collaborative setups below, systems of three agents are considered. The weights in the communication matrix in our proposed PR-PPO and PR-MDPO algorithms are updated during each global communication proportionally to the average reward of an individual agent since the last global communication.
 
-## 2. Результаты экспериментов
+## 2. Experiment Results
 
 ### 2.1. Minigrid
 
@@ -69,9 +69,9 @@
 </tr>
 </table>
 
-#### 2.1.5.	Выводы
+#### 2.1.5.	Conclusions
 
-Результаты экспериментов в средах Minigrid показали, что алгоритмы PR-PPO и PR-MDPO коллаборативного обучения агентов позволяют им учиться значительно быстрее. Более того, в одних средах алгоритмы на основе MDPO показывают себя лучше, чем PPO, а в каких-то – наоборот. Обучение агентов в коллаборативном сетапе получается более стабильным с меньшей дисперсией, если сравнивать с обучением изолированных агентов (бейзлайнов).
+The experimental results in Minigrid environments showed that the PR-PPO and PR-MDPO collaborative training algorithms enable agents to learn significantly faster. Moreover, in some environments MDPO-based algorithms outperform PPO, while in others the opposite is true. Training agents in a collaborative setup is more stable with lower variance compared to training isolated agents (baselines).
 
 ### 2.2. Atari
 
@@ -93,6 +93,6 @@
 </tr>
 </table>
 
-#### 2.2.3.	Выводы
+#### 2.2.3.	Conclusions
 
-Результаты экспериментов в средах Atari показали, что алгоритм PR-PPO позволяет агентам выходить на более высокий reward с меньшими затратами в коммуникациях по сравнению с алгоритмом FedAvg, то есть с использованием алгоритма PR-PPO необходимо меньшее число коммуникаций и как следствие меньший объём переданной информации для достижения лучшего результата.
+The experimental results in Atari environments showed that the PR-PPO algorithm enables agents to achieve higher rewards with lower communication costs compared to FedAvg, meaning that fewer communications and consequently less data transfer are needed to achieve better results using PR-PPO.

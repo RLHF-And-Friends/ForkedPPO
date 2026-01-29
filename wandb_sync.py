@@ -6,88 +6,88 @@ import os
 import concurrent.futures
 import threading
 
-# Создаем замок для предотвращения перемешивания вывода
+# Create a lock to prevent output interleaving
 print_lock = threading.Lock()
 
 def sync_single_folder(path, index, total):
     """
-    Синхронизирует один путь wandb
+    Syncs a single wandb path
     """
     with print_lock:
-        print(f"[{index}/{total}] Запуск синхронизации {path}...")
-    
+        print(f"[{index}/{total}] Starting sync for {path}...")
+
     if not os.path.exists(path):
         with print_lock:
-            print(f"Ошибка: путь {path} не существует")
-        return path, False, "Путь не существует"
-        
-    try:        
+            print(f"Error: path {path} does not exist")
+        return path, False, "Path does not exist"
+
+    try:
         result = subprocess.run(["wandb", "sync", path], check=True)
-        
+
         return path, True, None
     except subprocess.CalledProcessError as e:
         with print_lock:
-            print(f"Ошибка при синхронизации {path}: {e}")
+            print(f"Error syncing {path}: {e}")
         return path, False, str(e)
 
 def sync_wandb_folders(paths, max_workers=None):
     """
-    Запускает wandb sync для каждого из указанных путей параллельно
+    Runs wandb sync for each of the specified paths in parallel
     """
     successful = []
     failed = []
-    
-    # Используем ThreadPoolExecutor для параллельного запуска
+
+    # Use ThreadPoolExecutor for parallel execution
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-        # Создаем список задач
+        # Create list of tasks
         future_to_path = {
-            executor.submit(sync_single_folder, path, i+1, len(paths)): path 
+            executor.submit(sync_single_folder, path, i+1, len(paths)): path
             for i, path in enumerate(paths)
         }
-        
-        # Обрабатываем результаты по мере их завершения
+
+        # Process results as they complete
         for future in concurrent.futures.as_completed(future_to_path):
             path, success, error = future.result()
             if success:
                 successful.append(path)
             else:
                 failed.append((path, error))
-    
-    # Вывод итогов
-    print("\n--- Итоги синхронизации ---")
-    print(f"Успешно синхронизировано: {len(successful)}/{len(paths)}")
-    
+
+    # Print summary
+    print("\n--- Sync Summary ---")
+    print(f"Successfully synced: {len(successful)}/{len(paths)}")
+
     if failed:
-        print(f"Не удалось синхронизировать: {len(failed)}/{len(paths)}")
-        print("Список неудачных синхронизаций:")
+        print(f"Failed to sync: {len(failed)}/{len(paths)}")
+        print("List of failed syncs:")
         for path, error in failed:
             print(f"- {path}: {error}")
-    
+
     return successful, failed
 
 def main():
-    # Настройка парсера аргументов
+    # Set up argument parser
     parser = argparse.ArgumentParser(
-        description="Параллельная синхронизация оффлайн-вычислений wandb"
+        description="Parallel sync of offline wandb runs"
     )
     parser.add_argument(
-        "paths", 
-        nargs="+", 
-        help="Пути до оффлайн-вычислений wandb (можно указать несколько)"
+        "paths",
+        nargs="+",
+        help="Paths to offline wandb runs (multiple paths can be specified)"
     )
     parser.add_argument(
         "-w", "--workers",
         type=int,
         default=None,
-        help="Максимальное количество параллельных процессов (по умолчанию: количество CPU)"
+        help="Maximum number of parallel processes (default: number of CPUs)"
     )
-    
+
     args = parser.parse_args()
-    
-    # Запускаем синхронизацию
+
+    # Run sync
     successful, failed = sync_wandb_folders(args.paths, max_workers=args.workers)
-    
-    # Если были ошибки, выходим с ненулевым кодом
+
+    # Exit with non-zero code if there were errors
     if failed:
         sys.exit(1)
 

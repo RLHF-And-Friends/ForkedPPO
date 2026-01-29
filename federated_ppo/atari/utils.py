@@ -11,7 +11,7 @@ from federated_ppo.federated_environment import compute_kl_divergence
 import time
 import logging
 
-# Создаем логгер для модуля
+# Create module logger
 logger = logging.getLogger("federated_ppo.atari.utils")
 
 from stable_baselines3.common.atari_wrappers import (
@@ -81,7 +81,7 @@ def parse_args():
         help="coefficient of the communication penalty")
     parser.add_argument("--penalty-coeff", type=float, default=1.0,
         help="KL penalty coefficient")
-    parser.add_argument("--comm-matrix-config", type=str, default=None, 
+    parser.add_argument("--comm-matrix-config", type=str, default=None,
         help="path to comm_matrix json-config")
     parser.add_argument("--average-weights", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True,
         help="Average agents weights or not")
@@ -131,7 +131,7 @@ def parse_args():
         help="the maximum norm for the gradient clipping")
     parser.add_argument("--target-kl", type=float, default=None,
         help="the target KL divergence threshold")
-    
+
     args = parser.parse_args()
     args.batch_size = int(args.num_envs * args.num_steps)
     args.minibatch_size = int(args.batch_size // args.num_minibatches)

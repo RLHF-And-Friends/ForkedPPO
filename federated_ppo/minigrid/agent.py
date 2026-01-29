@@ -8,7 +8,7 @@ import gym
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 import logging
 
-# Создаем логгер для модуля
+# Create module logger
 logger = logging.getLogger("federated_ppo.minigrid.agent")
 
 
@@ -17,17 +17,17 @@ def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
     torch.nn.init.constant_(layer.bias, bias_const)
     return layer
 
-# Функция для создания нужного типа агента в зависимости от параметра agent_with_convolutions
+# Function to create the appropriate agent type based on the agent_with_convolutions parameter
 def make_agent(envs, agent_with_convolutions=True):
     """
-    Создает экземпляр агента нужного типа в зависимости от параметра agent_with_convolutions.
-    
+    Creates an agent instance of the appropriate type based on the agent_with_convolutions parameter.
+
     Args:
-        envs: среды для обучения
-        agent_with_convolutions: использовать ли сверточную архитектуру (True) или MLP (False)
-        
+        envs: training environments
+        agent_with_convolutions: whether to use convolutional architecture (True) or MLP (False)
+
     Returns:
-        Agent или MLPAgent в зависимости от agent_with_convolutions
+        Agent or MLPAgent depending on agent_with_convolutions
     """
     if agent_with_convolutions:
         logger.info("Creating agent with convolutional layers")
@@ -42,12 +42,12 @@ class Agent(nn.Module):
         self.envs = envs
 
         features_dim = 128
-        
+
         n_input_channels = envs.single_observation_space.shape[2]
-        
+
         logger.info(f"Single observation space: {envs.single_observation_space}")
 
-        # Создаем сверточные слои отдельно от Sequential для возможности расчета n_flatten
+        # Create convolutional layers separately from Sequential to enable n_flatten calculation
         self.conv_layers = nn.Sequential(
             layer_init(nn.Conv2d(n_input_channels, 16, (2, 2))),
             nn.Tanh(),
@@ -56,58 +56,58 @@ class Agent(nn.Module):
             layer_init(nn.Conv2d(32, 64, (2, 2))),
             nn.Tanh(),
         )
-        
-        # Рассчитываем размер выхода после сверточных слоев с примерным тензором
+
+        # Calculate the output size after convolutional layers using a sample tensor
         sample_obs = envs.single_observation_space.sample()
-        # Преобразуем формат [H, W, C] -> [1, C, H, W]
+        # Convert format [H, W, C] -> [1, C, H, W]
         sample_input = torch.as_tensor(sample_obs).float().permute(2, 0, 1).unsqueeze(0)
-        
+
         with torch.no_grad():
             conv_output = self.conv_layers(sample_input)
             logger.info(f"Conv output shape: {conv_output.shape}")
-            # Вычисляем размер линеаризованного выхода
+            # Calculate the flattened output size
             n_flatten = int(np.prod(conv_output.shape))
-        
-        self.n_flatten = n_flatten  # Сохраняем для отладки
+
+        self.n_flatten = n_flatten  # Store for debugging
         logger.info(f"Calculated n_flatten: {n_flatten}")
         logger.info(f"Conv output shape: {conv_output.shape}")
-        
-        # Создаем оставшуюся часть сети
+
+        # Create the remaining part of the network
         self.linear_layers = nn.Sequential(
             nn.Flatten(),
             nn.Linear(n_flatten, features_dim),
             nn.ReLU(),
         )
-        
+
         self.actor = layer_init(nn.Linear(features_dim, envs.single_action_space.n), std=0.01)
         self.critic = layer_init(nn.Linear(features_dim, 1), std=1)
 
         logger.info(f"Agent is initialized. {self}")
     def forward_impl(self, observations):
         """
-        Преобразование наблюдений через слои нейронной сети.
-        
+        Forward pass of observations through neural network layers.
+
         Args:
-            observations: тензор формы [batch_size, height, width, channels]
-        
+            observations: tensor of shape [batch_size, height, width, channels]
+
         Returns:
-            tensor: выходные фичи из последнего слоя перед actor/critic
+            tensor: output features from the last layer before actor/critic
         """
         batch_size = observations.shape[0]
-        
-        # Преобразуем формат [B, H, W, C] -> [B, C, H, W]
+
+        # Convert format [B, H, W, C] -> [B, C, H, W]
         x = observations.permute(0, 3, 1, 2)
-        
-        # Пропускаем через свёрточные слои
+
+        # Pass through convolutional layers
         x = self.conv_layers(x)
-        
-        # Проверяем размерности для отладки
+
+        # Check dimensions for debugging
         if batch_size == 1:
             logger.debug(f"Forward conv output shape: {x.shape}, expected n_flatten: {self.n_flatten}")
-        
-        # Линеаризуем и пропускаем через линейные слои
+
+        # Flatten and pass through linear layers
         x = self.linear_layers(x)
-        
+
         return x
 
     def get_value(self, x):
@@ -131,25 +131,25 @@ class Agent(nn.Module):
 
     def get_total_nn_params(self, log=False):
         """
-        Возвращает общее количество параметров нейронной сети и детальную разбивку по компонентам
-        
+        Returns the total number of neural network parameters and a detailed breakdown by component
+
         Returns:
-            dict: Словарь с общим количеством параметров и их разбивкой по компонентам
+            dict: Dictionary with total parameter count and breakdown by component
         """
         conv_params = sum(p.numel() for p in self.conv_layers.parameters())
         linear_params = sum(p.numel() for p in self.linear_layers.parameters())
         actor_params = sum(p.numel() for p in self.actor.parameters())
         critic_params = sum(p.numel() for p in self.critic.parameters())
         total_params = conv_params + linear_params + actor_params + critic_params
-        
+
         if log:
-            logger.info("\n=== Информация о нейронной сети агента ===")
-            logger.info(f"Общее количество параметров в сети: {total_params:,}")
-            logger.info(f"  - В сверточных слоях (conv_layers): {conv_params:,}")
-            logger.info(f"  - В линейных слоях (linear_layers): {linear_params:,}")
-            logger.info(f"  - В головке актора (actor): {actor_params:,}")
-            logger.info(f"  - В головке критика (critic): {critic_params:,}")
-        
+            logger.info("\n=== Agent Neural Network Info ===")
+            logger.info(f"Total number of network parameters: {total_params:,}")
+            logger.info(f"  - Convolutional layers (conv_layers): {conv_params:,}")
+            logger.info(f"  - Linear layers (linear_layers): {linear_params:,}")
+            logger.info(f"  - Actor head (actor): {actor_params:,}")
+            logger.info(f"  - Critic head (critic): {critic_params:,}")
+
         return {
             "total": total_params,
             "conv": conv_params,
@@ -158,17 +158,17 @@ class Agent(nn.Module):
             "critic": critic_params
         }
 
-# Новый класс MLPAgent - реализация без сверточных слоев (как в gym_minigrid_ppo.py)
+# MLPAgent class - implementation without convolutional layers (as in gym_minigrid_ppo.py)
 class MLPAgent(nn.Module):
     def __init__(self, envs):
         super(MLPAgent, self).__init__()
         self.envs = envs
-        
-        # Вычисляем общее число входных признаков, "выпрямляя" наблюдение
+
+        # Calculate total number of input features by flattening the observation
         obs_shape = np.array(envs.single_observation_space.shape)
         input_dim = int(np.prod(obs_shape))
-        
-        # Создаем модель критика (value network)
+
+        # Create critic model (value network)
         self.critic = nn.Sequential(
             layer_init(nn.Linear(input_dim, 64)),
             nn.Tanh(),
@@ -176,8 +176,8 @@ class MLPAgent(nn.Module):
             nn.Tanh(),
             layer_init(nn.Linear(64, 1), std=1.),
         )
-        
-        # Создаем модель актора (policy network)
+
+        # Create actor model (policy network)
         self.actor = nn.Sequential(
             layer_init(nn.Linear(input_dim, 64)),
             nn.Tanh(),
@@ -185,32 +185,32 @@ class MLPAgent(nn.Module):
             nn.Tanh(),
             layer_init(nn.Linear(64, envs.single_action_space.n), std=0.01),
         )
-        
+
         logger.debug(f"MLPAgent initialized with input_dim: {input_dim}")
         logger.debug(f"Observation shape: {obs_shape}")
 
     def get_value(self, x):
-        # Преобразуем входные данные в плоский вектор
+        # Flatten input to a vector
         batch_size = x.shape[0]
         x_flat = x.reshape(batch_size, -1)
         return self.critic(x_flat)
 
     def get_action_and_value(self, x, action=None):
-        # Преобразуем входные данные в плоский вектор
+        # Flatten input to a vector
         batch_size = x.shape[0]
         x_flat = x.reshape(batch_size, -1)
-        
-        # Получаем логиты от актора
+
+        # Get logits from actor
         logits = self.actor(x_flat)
         probs = Categorical(logits=logits)
-        
-        # Выбираем действие, если не предоставлено
+
+        # Sample action if not provided
         if action is None:
             action = probs.sample()
-            
-        # Вычисляем значение от критика
+
+        # Compute value from critic
         value = self.critic(x_flat)
-        
+
         return action, probs.log_prob(action), probs.entropy(), value
 
     def __deepcopy__(self, memo):
@@ -221,23 +221,23 @@ class MLPAgent(nn.Module):
 
     def get_total_nn_params(self, log=False):
         """
-        Возвращает общее количество параметров нейронной сети и детальную разбивку по компонентам
-        
+        Returns the total number of neural network parameters and a detailed breakdown by component
+
         Returns:
-            dict: Словарь с общим количеством параметров и их разбивкой по компонентам
+            dict: Dictionary with total parameter count and breakdown by component
         """
         actor_params = sum(p.numel() for p in self.actor.parameters())
         critic_params = sum(p.numel() for p in self.critic.parameters())
         total_params = actor_params + critic_params
-        
+
         if log:
-            logger.info("\n=== Информация о нейронной сети агента ===")
-            logger.info(f"Общее количество параметров в сети: {total_params:,}")
-            logger.info(f"  - В головке актора (actor): {actor_params:,}")
-            logger.info(f"  - В головке критика (critic): {critic_params:,}")
-        
+            logger.info("\n=== Agent Neural Network Info ===")
+            logger.info(f"Total number of network parameters: {total_params:,}")
+            logger.info(f"  - Actor head (actor): {actor_params:,}")
+            logger.info(f"  - Critic head (critic): {critic_params:,}")
+
         return {
             "total": total_params,
             "actor": actor_params,
             "critic": critic_params
-        } 
+        }

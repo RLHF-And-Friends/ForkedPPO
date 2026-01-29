@@ -13,7 +13,7 @@ from typing import Optional
 from federated_ppo.federated_environment import compute_kl_divergence
 import logging
 
-# Создаем логгер для модуля
+# Create module logger
 logger = logging.getLogger("federated_ppo.mujoco.utils")
 
 
@@ -76,7 +76,7 @@ def parse_args():
         help="coefficient of the communication penalty")
     parser.add_argument("--penalty-coeff", type=float, default=1.0,
         help="KL penalty coefficient")
-    parser.add_argument("--comm-matrix-config", type=str, default=None, 
+    parser.add_argument("--comm-matrix-config", type=str, default=None,
         help="path to comm_matrix json-config")
     parser.add_argument("--average-weights", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True,
         help="Average agents weights or not")

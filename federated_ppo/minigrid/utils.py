@@ -11,7 +11,7 @@ from typing import Optional
 from minigrid.wrappers import RGBImgPartialObsWrapper, ImgObsWrapper, FlatObsWrapper
 import logging
 
-# Создаем логгер для модуля
+# Create module logger
 logger = logging.getLogger("federated_ppo.minigrid.utils")
 
 def parse_args():
@@ -74,7 +74,7 @@ def parse_args():
         help="coefficient of the communication penalty")
     parser.add_argument("--penalty-coeff", type=float, default=1.0,
         help="KL penalty coefficient")
-    parser.add_argument("--comm-matrix-config", type=str, default=None, 
+    parser.add_argument("--comm-matrix-config", type=str, default=None,
         help="path to comm_matrix json-config")
     parser.add_argument("--use-fedavg", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True,
         help="Use FedAVG or not")
@@ -126,12 +126,12 @@ def parse_args():
         help="the target KL divergence threshold")
     parser.add_argument("--see-through-walls", type=lambda x: bool(strtobool(x)), default=True, nargs="?", const=True,
         help="Minigrid training parameter: Set this to True for maximum speed")
-    
+
     args = parser.parse_args()
     args.batch_size = int(args.num_envs * args.num_steps)
     args.minibatch_size = int(args.batch_size // args.num_minibatches)
     args.global_updates = int(int(args.total_timesteps // args.batch_size) // args.local_updates)
-    
+
     logger.info("Expected number of communications in total: %s", args.global_updates)
     logger.info("Local updates between communications: %s", args.batch_size * args.local_updates)
 
@@ -162,13 +162,13 @@ def make_env(args, gym_id, seed, idx, agent_idx, capture_video, run_name):
         logger.info(f"Making minigrid env with gym_id: {gym_id}")
         env = gym.make(gym_id, render_mode="rgb_array")
         env = gym.wrappers.RecordEpisodeStatistics(env)
-        
-        # Применяем разные обертки в зависимости от типа агента
+
+        # Apply different wrappers depending on the agent type
         if args.agent_with_convolutions:
-            # env = RGBImgPartialObsWrapper(env) - вместо Box(0, 255, (7, 7, 3), uint8) будет Box(0, 255, (56, 56, 3), uint8)
+            # env = RGBImgPartialObsWrapper(env) - instead of Box(0, 255, (7, 7, 3), uint8) it would be Box(0, 255, (56, 56, 3), uint8)
             env = ImgObsWrapper(env)
         else:
-            # Для MLP используем FlattenObsWrapper для получения плоского вектора
+            # For MLP, use FlattenObsWrapper to get a flat vector
             env = FlattenObsWrapper(env)
 
         if capture_video:
@@ -189,7 +189,7 @@ def make_env(args, gym_id, seed, idx, agent_idx, capture_video, run_name):
     return thunk
 
 def one_hot(a, size):
-    """Преобразует число в one-hot вектор заданного размера."""
+    """Converts a number to a one-hot vector of the given size."""
     b = np.zeros((size))
     b[a] = 1
     return b
@@ -197,8 +197,8 @@ def one_hot(a, size):
 
 class FlattenObsWrapper(gym.Wrapper):
     """
-    Обёртка для преобразования наблюдений в плоский вектор,
-    аналогично FlattenObs из gym_minigrid_ppo.py
+    Wrapper for converting observations to a flat vector,
+    similar to FlattenObs from gym_minigrid_ppo.py
     """
     def __init__(self, env):
         super().__init__(env)
@@ -214,4 +214,4 @@ class FlattenObsWrapper(gym.Wrapper):
     def step(self, action):
         o, reward, done, info = super().step(action)
         obs = np.append(o['image'].flatten()/255., [one_hot(o['direction'], 4)])
-        return obs, reward, done, info 
+        return obs, reward, done, info
